@@ -46,7 +46,7 @@ document describe how to convert from the existing Ip330Scan
 support to this package. </p>
 
 <p>The software is available as a <a
-href="ftp://cars.uchicago.edu/pub/epics/ip330App.tar">tar file</a>.
+href="http://cars.uchicago.edu/software/pub/ip330App.tar">tar file</a>.
 </p>
 
 <h2 align="center"><a name="Ip330">Class Ip330</a></h2>
@@ -573,7 +573,7 @@ acquisition will stop whenever either preset time is reached.</p>
 that the MCA record is not part of EPICS base. The MPF device
 support for the MCA record, and the MCA record itself are
 available separately in the <a
-href="ftp://cars.uchicago.edu/pub/epics/mcaApp.tar">mcaApp tar
+href="http://cars.uchicago.edu/software/pub/mcaApp.tar">mcaApp tar
 file</a>. </p>
 
 <pre>
@@ -948,13 +948,22 @@ operation. See the comments in ip330PID.cc for details.</p>
     <li>If secondsBetween Calibrate<0 then return raw value.</li>
 </ul>
 
+<h3>Release 1.2 January 16, 2001</h3>
+
+<ul>
+    <li>Fixed a bug which caused the IOC to crash if the external trigger line
+        was asserted during a hardware reboot.
+    <li>Fixed bugs which caused the IOC to crash if the IP330 hardware was not
+        installed but server configuration commands were present in the startup file.
+</ul>
+
 <hr>
 
 <address>
     Suggestions and Comments to: <br>
     <a href="mailto:rivers@cars.uchicago.edu">Mark Rivers </a>:
     (rivers@cars.uchicago.edu) <br>
-    Last modified: September 10, 2000 
+    Last modified: January 16, 2001
 </address>
 </body>
 </html>
