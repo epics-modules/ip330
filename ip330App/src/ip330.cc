@@ -32,8 +32,9 @@ of this distribution.
                  crashed the IOC if an external trigger is active when the ioc is
                  booted via a power cycle.
     28-Aug-2001  Mark Rivers per Marty Kraimer
-                 Removed calls to intClear and intDisable.  These were not necessary
-                 and did not work on dumb IP carrier.
+                 Removed calls to intClear and intDisable.
+                 These were not necessary and did not work on dumb IP carrier.
+    12-Oct-2001  Marty Kraimer. Code to handle soft reboots.
 */
 
 #include <vxWorks.h>
@@ -43,6 +44,7 @@ of this distribution.
 #include <string.h>
 #include <stdio.h>
 
+#include <taskLib.h>
 #include <tickLib.h>
 #include <intLib.h>
 
@@ -269,6 +271,7 @@ Ip330:: Ip330(
 int Ip330:: config(scanModeType scan, const char *triggerString, 
                int microSeconds, int secondsCalibrate)
 {
+    if(rebooting) taskSuspend(0);
     int trigger;
     for(trigger=0; trigger<nTriggers; trigger++) {
         if(::strcmp(triggerString,triggerName[trigger])==0) break;
@@ -287,6 +290,7 @@ int Ip330:: config(scanModeType scan, const char *triggerString,
 
 int Ip330::getCorrectedValue(int channel)
 {
+    if(rebooting) taskSuspend(0);
     int val;
     val = correctValue(channel, chanData[channel]);
     return(val);
@@ -294,6 +298,7 @@ int Ip330::getCorrectedValue(int channel)
 
 int Ip330::correctValue(int channel, int raw)
 {
+    if(rebooting) taskSuspend(0);
     int value;
     if(secondsBetweenCalibrate<0) {
         value=raw;
@@ -312,11 +317,13 @@ int Ip330::correctValue(int channel, int raw)
 
 int Ip330::getRawValue(int channel)
 {
+    if(rebooting) taskSuspend(0);
     return( chanData[channel]);
 }
 
 int Ip330::setGain(int gain,int channel)
 {
+    if(rebooting) taskSuspend(0);
     int status = 0;
     if(gain<0 || gain>nGains || channel<0 || channel>lastChan) return(-1);
     if(gain!=chanSettings[channel].gain) status = setGain(range,gain,channel);
@@ -325,6 +332,7 @@ int Ip330::setGain(int gain,int channel)
 
 int Ip330:: setGain(int range, int gain, int channel)
 {
+    if(rebooting) taskSuspend(0);
     unsigned short  saveControl;
     if(gain<0 || gain>=nGains) {
         printf("Ip330 setGain illegal gain value %d\n",gain);
@@ -347,6 +355,7 @@ int Ip330:: setGain(int range, int gain, int channel)
 
 int Ip330::setTrigger(triggerType trig)
 {
+    if(rebooting) taskSuspend(0);
     if (trig < 0 || trig >= nTriggers) return(-1);
     trigger = trig;
     if (trigger == output) regs->control |= 0x0004;
@@ -355,6 +364,7 @@ int Ip330::setTrigger(triggerType trig)
 
 int Ip330::setScanMode(scanModeType mode)
 {
+    if(rebooting) taskSuspend(0);
     if ((mode < disable) || (mode > convertOnExternalTriggerOnly)) return(-1);
     scanMode = mode;
     regs->control |= scanMode << 8;
@@ -364,6 +374,7 @@ int Ip330::setScanMode(scanModeType mode)
 
 int Ip330::registerCallback(Ip330Callback callback, void *pvt)
 {
+    if(rebooting) taskSuspend(0);
     // Disable interrupts while adding this callback
     int intKey = intLock();
     DEBUG(1,"Ip330::registerCallack, callback=%p, pvt=%p\n",
@@ -418,6 +429,7 @@ void Ip330:: waitNewData()
 
 void Ip330::setSecondsBetweenCalibrate(int seconds)
 {
+    if(rebooting) taskSuspend(0);
    secondsBetweenCalibrate = seconds;
    autoCalibrate((void *)this);
 }
@@ -425,6 +437,7 @@ void Ip330::setSecondsBetweenCalibrate(int seconds)
 void Ip330::autoCalibrate(void * parm)
 {
     Ip330 *pIp330 = (Ip330 *)parm;
+    if(pIp330->rebooting) taskSuspend(0);
     pIp330->wdId->cancel();
     if(pIp330->secondsBetweenCalibrate<0) return;
     if(Ip330Debug) printf("Ip330::autoCalibrate starting calibration\n");
@@ -438,6 +451,7 @@ void Ip330::autoCalibrate(void * parm)
 //See Acromag User's Manual for details about callibration
 int Ip330:: calibrate(int channel)
 {
+    if(rebooting) taskSuspend(0);
     unsigned short saveControl = regs->control;
     regs->control &= SCAN_DISABLE;
     /* Disable scan mode and interrupts */
@@ -515,16 +529,19 @@ int Ip330:: calibrate(int channel)
 void Ip330:: rebootCallback(void *v)
 {
     Ip330 *pIp330 = (Ip330 *)v;
+    pIp330->regs->control &= SCAN_DISABLE;
     pIp330->rebooting = true;
 }
 
 float Ip330:: setMicroSecondsPerScan(float microSecondsPerScan)
 {
+    if(rebooting) taskSuspend(0);
     return(setTimeRegs(microSecondsPerScan));
 }
 
 float Ip330:: getActualMicroSecondsPerScan()
 {
+    if(rebooting) taskSuspend(0);
     return((15. * (lastChan - firstChan + 1)) +
           (regs->timePrescale * regs->conversionTime) / 8.);
 }
@@ -535,11 +552,13 @@ float Ip330:: getActualMicroSecondsPerScan()
 // it is often called from the interrupt routines of servers which use Ip330.
 float Ip330:: getMicroSecondsPerScan()
 {
+    if(rebooting) taskSuspend(0);
     return(actualMicroSecondsPerScan);
 }
 
 float Ip330:: setTimeRegs(float microSecondsPerScan)
 {
+    if(rebooting) taskSuspend(0);
     // This function computes the optimal values for the prescale and
     // conversion timer registers.  microSecondsPerScan is the time
     // in microseconds between successive scans.
