@@ -16,6 +16,9 @@ of this distribution.
     01/16/01 MLR Added check for valid pIp330 in Ip330Scan::init
     03/31/03 MLR Made time to average be independent for each channel, previously
                  all channels used the same time. Added some debugging.
+    04/24/03 MLR Changed so that there is no "time to average" concept.  Rather
+                 averaging is done until the value is read with getValue().
+                 Merged Ip330Scan.h and Ip330ScanServer.cc into this file.
 */
 
 #include <vxWorks.h>
@@ -25,7 +28,40 @@ of this distribution.
 #include <string.h>
 #include <stdio.h>
 
-#include "Ip330Scan.h"
+#include "Message.h"
+#include "Int32Message.h"
+#include "mpfType.h"
+
+#include "Ip330.h"
+
+class Ip330ScanData
+{
+public:
+    long averageStore;
+    int accumulated;
+};
+
+class Ip330Scan
+{
+public:
+    static Ip330Scan * init(Ip330 *pIp330, int firstChan, int lastChan);
+    int getValue(int channel);
+    int setGain(int gain,int channel);
+    Ip330Scan(Ip330 *pIp330, int firstChan, int lastChan);
+private:
+    static void callback(void*, int *data);   // Callback function from Ip330
+    Ip330 *pIp330;
+    int firstChan;
+    int lastChan;
+    Ip330ScanData *chanData;
+};
+
+class Ip330ScanServer {
+public:
+    Ip330Scan *pIp330Scan;
+    MessageServer *pMessageServer;
+    static void ip330Server(Ip330ScanServer *);
+};
 
 extern "C"
 {
@@ -38,16 +74,27 @@ volatile int Ip330ScanDebug = 0;
 }
 
 
-Ip330Scan * Ip330Scan::init(Ip330 *pIp330, int firstChan, int lastChan,
-                            int milliSecondsToAverage)
+static char taskname[] = "ip330Scan";
+extern "C" int initIp330Scan(Ip330 *pIp330, const char *serverName, 
+                             int firstChan, int lastChan, int queueSize)
 {
     if (!pIp330) return(0);
-    Ip330Scan *pIp330Scan = new Ip330Scan(pIp330,firstChan,lastChan,milliSecondsToAverage);
-    return(pIp330Scan);
+    Ip330Scan *pIp330Scan = new Ip330Scan(pIp330, firstChan, lastChan);
+    Ip330ScanServer *pIp330ScanServer = new Ip330ScanServer;
+    pIp330ScanServer->pIp330Scan = pIp330Scan;
+    pIp330ScanServer->pMessageServer = new MessageServer(serverName,queueSize);
+    int taskId = taskSpawn(taskname,100,VX_FP_TASK,2000,
+        (FUNCPTR)Ip330ScanServer::ip330Server,(int)pIp330ScanServer,
+        0,0,0,0,0,0,0,0,0);
+    if(taskId==ERROR)
+        printf("%s ip330Server taskSpawn Failure\n",
+            pIp330ScanServer->pMessageServer->getName());
+    return(0);
 }
 
+
 Ip330Scan:: Ip330Scan(
-    Ip330 *pIp330, int firstChan, int lastChan, int milliSecondsToAverage)
+    Ip330 *pIp330, int firstChan, int lastChan)
 : pIp330(pIp330), firstChan(firstChan), lastChan(lastChan)
 {
     int chan;
@@ -57,19 +104,25 @@ Ip330Scan:: Ip330Scan(
         return;
     }
     for (chan=0; chan<MAX_IP330_CHANNELS; chan++) {
-       chanData[chan].milliSecondsToAverage = -1;
-       setNumAverage(milliSecondsToAverage, chan);
+       chanData[chan].accumulated = 0;
     }
     pIp330->registerCallback(callback, (void *)this);
 }
 
 int Ip330Scan::getValue(int channel)
 {
-    DEBUG(5, "Ip330Scan:getValue, chan=%d, chanVal=%ld, accumulated=%d, averageStore=%ld\n",
-                               channel, chanData[channel].chanVal, 
-                               chanData[channel].accumulated, 
-                               chanData[channel].averageStore);
-    return( pIp330->correctValue(channel, chanData[channel].chanVal) );
+    Ip330ScanData  *sd = &chanData[channel];
+    long average;
+    
+    DEBUG(5, "Ip330Scan:getValue, chan=%d, accumulated=%d, averageStore=%ld\n",
+                               channel,
+                               sd->accumulated, 
+                               sd->averageStore);
+    if (sd->accumulated == 0) sd->accumulated = 1;
+    average = sd->averageStore / sd->accumulated;
+    sd->averageStore = 0;
+    sd->accumulated = 0;
+    return(pIp330->correctValue(channel, average) );
 }
 
 void Ip330Scan:: callback(void *v, int *newData)
@@ -82,11 +135,6 @@ void Ip330Scan:: callback(void *v, int *newData)
         sd = &t->chanData[i];
         sd->accumulated++;
         sd->averageStore += newData[i];
-        if (sd->accumulated == sd->numAverage) {
-            sd->chanVal = sd->averageStore / sd->accumulated;
-            sd->averageStore = 0;
-            sd->accumulated = 0;
-        }
     }
 }
 
@@ -97,16 +145,29 @@ int Ip330Scan:: setGain(int gain, int channel)
 }
 
 
-void Ip330Scan:: setNumAverage(int milliSecondsToAverage, int channel)
+void Ip330ScanServer::ip330Server(Ip330ScanServer *pIp330ScanServer)
 {
-   // If the time is the same as currently set don't do anything
-   if (milliSecondsToAverage == chanData[channel].milliSecondsToAverage) return;
-   DEBUG(1, "Ip330Scan: changed time to average from %d to %d\n", 
-            chanData[channel].milliSecondsToAverage, milliSecondsToAverage);
-   chanData[channel].milliSecondsToAverage = milliSecondsToAverage;
-   chanData[channel].numAverage = (int) (((1000. * milliSecondsToAverage) / 
-                                 pIp330->getMicroSecondsPerScan()) + 0.5);
-   chanData[channel].averageStore = 0;
-   chanData[channel].accumulated = 0;
+    while(true) {
+       MessageServer *pMessageServer = pIp330ScanServer->pMessageServer;
+       Ip330Scan *pIp330Scan = pIp330ScanServer->pIp330Scan;
+       pMessageServer->waitForMessage();
+       Message *inmsg;
+       while((inmsg = pMessageServer->receive())) {
+          if(inmsg->getType()!=messageTypeInt32) {
+             printf("%s ip330Server got illegal message type %d\n",
+                pMessageServer->getName(), inmsg->getType());
+             delete inmsg;
+          } else {
+             Int32Message *pmessage = (Int32Message *)inmsg;
+             pmessage->status = 0;
+             int gain = pmessage->value;
+             int channel = pmessage->address;
+             if (pIp330Scan->setGain(gain,channel)) pmessage->status= -1;
+             if (pmessage->status==0) {
+                pmessage->value = (int32)pIp330Scan->getValue(channel);
+             }
+             pMessageServer->reply(pmessage);
+          }
+       }
+    }
 }
-
