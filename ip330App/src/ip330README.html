@@ -10,11 +10,14 @@ content="text/html; charset=iso-8859-1">
 
 <body>
 
-<h1 align="center">ip330 Documentation<br>
+<h1 align="center">Support for the Acromag IP-330 ADC<br>
 </h1>
 
 <h2 align="center">Authors: Mark Rivers, Joe Sullivan and Marty
 Kraimer<br>
+</h2>
+
+<h2 align="center">Release 1.7<br>
 </h2>
 
 <p>The support for the Ip330 is very general and flexible. It is
@@ -38,6 +41,14 @@ simultaneously, and can even all be talking to the same input
 channels. It is easy to add additional application-specific
 classes as the need arises. </p>
 
+<p>The <a href="#Release">Release notes</a> at the end of this
+document describe how to convert from the existing Ip330Scan
+support to this package. </p>
+
+<p>The software is available as a <a
+href="http://cars.uchicago.edu/software/pub/ip330App.tar">tar file</a>.
+</p>
+
 <h2 align="center"><a name="Ip330">Class Ip330</a></h2>
 
 <p>At the lowest level there is a class called Ip330. This class
@@ -59,7 +70,8 @@ above Ip330. </p>
 
 <p>This is the public interface of the Ip330 class: </p>
 
-<pre>class Ip330
+<pre>
+class Ip330
 {
 public:
     static Ip330 * init(
@@ -166,7 +178,8 @@ public:
 <p>The Ip330 is configured by calling the following functions
 from the vxWorks startup file. </p>
 
-<pre>extern &quot;C&quot; Ip330 *initIp330(
+<pre>
+extern &quot;C&quot; Ip330 *initIp330(
     const char *moduleName, const char *carrierName, const char *siteName,
     const char *typeString, const char *rangeString,
     int firstChan, int lastChan,
@@ -232,7 +245,8 @@ to be passed to functions which are called from the shell. </p>
 switches 1 - 10. A value of 1011000010 corresponds to switches
 1,3,4,9 on and 2,5,6,7,8,10 off. </p>
 
-<pre>ADC Range  DIP Switch     {GAIN}        {FULL VALUE}    {LOW VALUE}
+<pre>
+ADC Range  DIP Switch     {GAIN}        {FULL VALUE}    {LOW VALUE}
 
 -5to5      1011000010        0               5              -5
 -5to5      1011000010        1               2.5            -2.5
@@ -260,7 +274,8 @@ changing setSecondsBetweenCalibrate.
 
 <h3>Ip330Config server configuration</h3>
 
-<pre>extern &quot;C&quot; int initIp330Config(
+<pre>
+extern &quot;C&quot; int initIp330Config(
     Ip330 *pIp330, const char *serverName, int queueSize)
 # pIp330     = pointer returned by initIp330 above
 # serverName = name to give this server.  Must match the INP parm field in
@@ -287,7 +302,8 @@ It sends an Int32Messages with the following info: </p>
 
 <p>Standard output record type format is for longout records </p>
 
-<pre> field(DTYP,&quot;ip330Config&quot;)
+<pre>
+ field(DTYP,&quot;ip330Config&quot;)
 
  field(OUT,&quot;#C{card} S{signal} @{servername},{cmd}
  card   =       The location of the server
@@ -312,7 +328,8 @@ Ip330ScanApp in previous releases of MPF. </p>
 
 <p>This is the public interface of the Ip330Scan class: </p>
 
-<pre>class Ip330Scan
+<pre>
+class Ip330Scan
 {
 public:
     Ip330Scan(Ip330 *pIp330, int firstChan, int lastChan);
@@ -336,7 +353,8 @@ public:
 
 <h3>Ip330Scan configuration</h3>
 
-<pre>extern &quot;C&quot; int initIp330Scan(
+<pre>
+extern &quot;C&quot; int initIp330Scan(
     Ip330 *pIp330, const char *serverName, int firstChan, int lastChan, int queueSize)
 # pIp330     = pointer returned by initIp330 above
 # serverName = name to give this server.  Must match the INP parm field in
@@ -377,7 +395,8 @@ and counter).</p>
 
 <p>Standard input record type format is for ai records </p>
 
-<pre> field(SCAN,&quot;1 second&quot;)
+<pre>
+ field(SCAN,&quot;1 second&quot;)
 
  field(DTYP,&quot;ip330Scan&quot;)
 
@@ -411,7 +430,8 @@ not use all of the channels. </p>
 <p>Ip330Sweep is a subclass of fastSweep, which is an abstract base class.&nbsp;
 This is the public interface of the Ip330Sweep class: </p>
 
-<pre>class Ip330Sweep
+<pre>
+class Ip330Sweep
 {
 public:
     ip330Sweep(Ip330 *pIp330, int firstChan, int lastChan, int maxPoints);
@@ -506,7 +526,8 @@ feature was introduced in release 1.7.</p>
 
 <h3>Ip330Sweep configuration</h3>
 
-<pre>initIp330Sweep(Ip330 *pIp330, char *serverName, int firstChan, int lastChan,
+<pre>
+initIp330Sweep(Ip330 *pIp330, char *serverName, int firstChan, int lastChan,
                int maxPoints, int queueSize)
 # pIp330     = pointer returned by initIp330 above
 # serverName = name to give this server
@@ -551,7 +572,7 @@ defined in mcaApp/src/mca.h): </p>
     </li>
     <li><tt>cmd = MSG_SET_REAL_TIME</tt> - sets the preset real
         time. </li>
-    <li>&nbsp;<ul>
+    <li><ul>
             <li><tt>value</tt> - preset time in seconds. </li>
         </ul>
     </li>
@@ -568,7 +589,8 @@ available separately in the <a
 href="http://cars.uchicago.edu/software/pub/mcaApp.tar">mcaApp tar
 file</a>. </p>
 
-<pre> field(DTYP,&quot;MPF MCA&quot;)
+<pre>
+ field(DTYP,&quot;MPF MCA&quot;)
 
  field(NMAX, nchannels)
  nchannels = maximum number of channels (time points) to use for this record.
@@ -685,7 +707,8 @@ changed by the server at any time. </p>
 
 <h3>Ip330PID configuration</h3>
 
-<pre>extern &quot;C&quot; Ip330PID *initIp330PID(const char *serverName,
+<pre>
+extern &quot;C&quot; Ip330PID *initIp330PID(const char *serverName,
          Ip330 *pIp330, int ADCChannel, DAC128V *pDAC128V, int DACChannel,
          int queueSize)
 # serverName = name to give this server
@@ -754,7 +777,8 @@ that the EPID record is not part of EPICS base. The EPID record is available fro
 Rivers or from the APS Beamline Controls and Data Acquisition
 group. </p>
 
-<pre> field(DTYP,&quot;MPF EPID&quot;)
+<pre>
+ field(DTYP,&quot;MPF EPID&quot;)
 
  field(INP,&quot;#C{card} S0 @{servername})
  card   =       The location of the server
@@ -801,8 +825,8 @@ had a function to control the scan rate of the Ip330. However,
 there is only a single interval timer in the IP330 hardware, and
 so if one class changed the scan rate it would change the scan
 rate for all of the other classes. This interaction was
-undesirable, and so the behavior was changed, starting with
-release 1.01. The value of <tt>microSecondsPerScan</tt>
+undesirable, and so the behavior has been changed, starting with
+release 1.01. Now the value of <tt>microSecondsPerScan</tt>
 specified in <tt>configIp330</tt> is never changed by any
 application classes. Each application class will have its
 callback routine executed at this time interval. The application
@@ -812,7 +836,7 @@ is 1000, and <tt>ip330-&gt;microSecondsPerScan</tt> is 500, then
 the <tt>ip330Sweep</tt> callback routine returns immediately
 without doing anything on every other call. This behavior
 eliminates any interaction between the timing for the different
-application classes. The limitation is that the granularity
+application classes. The new limitation is that the granularity
 of the time intervals available to an application class is now
 limited to the value of <tt>microSecondsPerScan</tt> specified in
 <tt>configIp330</tt>, whereas previously the granularity was 8
@@ -820,13 +844,217 @@ microseconds. Thus, for example, if <tt>microSecondsPerScan</tt>
 is 500 microseconds then the dwell times available in the <tt>ip330Sweep</tt>
 class are limited to multiples of 500 microseconds. </p>
 
+<h2 align="center"><a name="Release">Release notes</a></h2>
+
+<h3>Release 1.0 November 15, 1999</h3>
+
+<p>This support replaces the previous ip330ScanApp. That support
+did the following: </p>
+
+<ul>
+    <li>Digitized channels 0 to 15 in differential mode, or 0 to
+        31 in single-ended mode </li>
+    <li>Took a complete set of readings every millisecond.
+        Actually the complete set of readings was taken every
+        1.240 milliseconds in diffential mode and every 1.480
+        milliseconds in single ended mode, because the 15
+        microseconds to convert each channel was not taken into
+        account when programming the interval timer. </li>
+    <li>Averaged 200 samples for each channel. However, there was
+        a bug in the software when running in differential mode.
+        The data were always read from the lower mailbox
+        registers (0-15) rather than alternating the reads
+        between the lower and upper mailbox registers. Thus, only
+        100 unique values were being averaged in this mode,
+        rather than 200. </li>
+    <li>Returned the average value to device support, thus every
+        0.2 seconds a 200 sample average was supposed to be
+        available. </li>
+    <li>Once a minute calibration was done automatically. </li>
+</ul>
+
+<p>The new support can be configured to function exactly as the
+previous support was intended to function with commands like the
+following in the MPF server startup file: </p>
+
+<pre>
+  pIp330 = initIp330(&quot;c-Ip330&quot;,carrier,&quot;IP_c&quot;,&quot;D&quot;,&quot;-5to5&quot;,0,15,10,120)
+  configIp330(pIp330,3,&quot;Input&quot;,1000,60)
+  initIp330Scan(pIp330,&quot;c-Ip330Scan&quot;,0,15,200,20)
+</pre>
+
+<p>The initIp330 command creates a task called
+&quot;c-Ip330&quot;, with the following settings: </p>
+
+<ul>
+    <li>differential mode </li>
+    <li>-5 to 5 volt range </li>
+    <li>convert channels 0 to 15, </li>
+    <li>10 clients (Ip330 application-specific servers) maximum </li>
+    <li>interrupt vector = 120 </li>
+</ul>
+
+<p>The configIp330 command configures Ip330 with the following
+settings: </p>
+
+<ul>
+    <li>scanMode = 3 = Burst Continuous </li>
+    <li>external trigger = input </li>
+    <li>1000 microseconds = 1 millisecond per scan </li>
+    <li>60 seconds between calibrations </li>
+</ul>
+
+<p>The initIp330Scan command creates a server called
+&quot;c-Ip330Scan&quot; with the following settings: </p>
+
+<ul>
+    <li>connected to the Ip330 object created by the initIp330
+        command </li>
+    <li>convert channels 0 to 15 </li>
+    <li>average readings for 200 milliseconds </li>
+    <li>create an output queue for 20 MPF messages </li>
+</ul>
+
+<h3>Release 1.01 April 20, 2000</h3>
+
+<p>Changed the timing logic. See the discussion in <a
+href="#Restriction">Restrictions on Scan Timing</a>. </p>
+
+<h3>Release 1.02 September 10, 2000</h3>
+
+<p>Changed ip330SweepServer.cc, removed Ip330SweepServer.h, and
+replaced devMcaIp330.cc with a device-independent layer,
+devMcaMpf.cc. devMcaMpf.cc is part of mcaApp, not part of Ip330,
+since it is no longer specific to the Ip330. The messages
+accepted by Ip330SweepServer have been changed to accomodate the
+new device-independent layer.</p>
+
+<p>Changes to the PID algorithm in ip330PID.cc to improve its
+operation. See the comments in ip330PID.cc for details.</p>
+
+<h3>Release 1.1 November 1, 2000 (Marty Kraimer)</h3>
+
+<ul>
+    <li>Added the configuration server.</li>
+    <li>Added a lock that protects adj_slope and adj_offset
+         from being changed while corrected values are computed.</li>
+    <li>Force two data acquisition cycles during calibration.
+        This is necessary to allow ADC to settle.</li>
+    <li>After calibration set mailBoxOffset=16. Caused a bad reading.</li>
+    <li>If secondsBetween Calibrate<0 then return raw value.</li>
+</ul>
+
+<h3>Release 1.2 January 16, 2001</h3>
+
+<ul>
+    <li>Fixed a bug which caused the IOC to crash if the external trigger line
+        was asserted during a hardware reboot.
+    <li>Fixed bugs which caused the IOC to crash if the IP330 hardware was not
+        installed but server configuration commands were present in the startup file.
+</ul>
+
+<h3>Release 1.3 August 28, 2001</h3>
+
+<ul>
+    <li>                 Removed calls to intClear and intDisable. These were not necessary and did not work on dumb IP carrier.<br>
+</ul>
+
+<h3>Release 1.4 October 12, 2001</h3>
+
+<ul>
+    <li>Added code to handle soft reboots.<br>
+</ul>
+
+<h3>Release 1.5 July 31, 2002 (Carl Lionberger and Eric Snow at SNS)</h3>
+<ul>
+  <li>                 Moved interrupt enable to end of config.&nbsp; It was
+    generating lots of interrupts before being fully configured.</li>
+  <li>Properly masked mode control bits in setScanMode, was not working in modes
+    other than burstContinuous</li>
+  <li>Adjusted mailBoxOffset for uniformSingle and burstSingle scan modes in intFunc.<br>
+  </li>
+</ul>
+<h3>Release 1.6 March 31, 2003</h3>
+<ul>
+  <li>                 Changed the way averaging is done in the ip330Scan
+    class.&nbsp; Previously there was a single averaging time for all input
+    channels, that was set at boot time with the milliSecondsToAverage parameter
+    in the call to initIp330Scan().&nbsp; This was not the best way to do it,
+    since if an ai record was set to process every 2 seconds, but
+    milliSecondsToAverage was 100 msec, then the ai record would just be
+    sampling every 20'th average.&nbsp; A much better way to do it is to have
+    the averaging time be equal to the scan time of the record, so that if the
+    scan time is 2 seconds then the averaging is done for 2 seconds, greatly
+    improving signal to noise.&nbsp; This has now been implemented by making the
+    averaging time be independent for each input channel, and passing the scan
+    time in the &quot;extra&quot; field of the message from device support to
+    the server.&nbsp; Note that there is a limitation in the way this is
+    presently implemented:&nbsp; it only works if the &quot;standard&quot; EPICS
+    scan times of 10, 5, 2, 1, .5, .2 and .1 seconds are used.&nbsp; If a site
+    changes these scan times it will not work correctly, because there is no API
+    available to determine the actual scan time of a record.</li>
+</ul>
+<h3>Release 1.7 April 25, 2003</h3>
+<ul>
+  <li>                 Changed the way averaging is done in the ip330Scan class
+    again.&nbsp; Removed completely the concept of milliSecondsToAverage.&nbsp;
+    Now the act of reading the value for a channel computes the average, and
+    then resets the averaging process by setting the sum and number of samples
+    back to 0.&nbsp; This has several advantages over the way things were done
+    in Release 1.6:
+    <ul>
+      <li>It makes things much simpler, there is no need for device support to
+        send its scan time to the server, nor any need for the server to keep
+        track of individual averaging times for each channel. Device support
+        does not then need to know about EPICS scan rates at all.</li>
+      <li>The periodically scanned records work exactly as they did in Release
+        1.6, since the average will be over the interval since the record was
+        previously processed. Thus, a record scanned at 1 second will average
+        for 1 second, etc.</li>
+      <li>There is now a clean way to use it with EPICS scanning, i.e. to start
+        averaging after changing an independent variable, and to average for a
+        user-controlled period of time. Simply do the following with an ai
+        record that is &quot;Passive&quot;</li>
+    </ul>
+    <blockquote>
+      <ol>
+        <li>Change the independent variable</li>
+        <li>Process the ai record: this resets the average</li>
+        <li>Wait for the period of time you want to average for</li>
+        <li>Process the ai record again, and read the value</li>
+      </ol>
+    </blockquote>
+    <p>This release requires modifying the call to initIp330Scan() in the startup
+    script, since the milliSecondsToAverage parameter no longer exists.</li>
+  <li>Made two new abstract C++ base classes, fastSweep and fastPID. Ip330Sweep
+    and Ip330PID are subclasses of these abstract base classes. The reason for
+    doing this is that my support for Steve Ross' quad electrometer (in a new
+    App called quadEM) has the same types of support (quadEMScan, quadEMSweep
+    and quadEMPID). Using the abstract base classes reduces the amount of code
+    to implement the device specific features to less than 2 pages each.&nbsp;
+    devEpidIp330.dbd was replaced with devEpidMpf.dbd.</li>
+  <li>Modified Ip330Sweep and Ip330PID. Previously if they were running at an
+    integer divisor N of the Ip330 clock (N=2, 3, 4 ...) then they would simply
+    ignore the intervening readings from the Ip330. In the new version they
+    average the intervening readings. This avoids aliasing of high frequency
+    components.</li>
+  <li>Eliminated the function configIp330PID.&nbsp; This function did not work
+    on the PowerPC and is not necessary.&nbsp; This may require modifications to
+    existing startup scripts.</li>
+  <li>Reduced number of source files, by combining ip330ScanServer.cc and
+    Ip330Scan.h into ip300Scan.cc, etc.</li>
+  <li>Eliminated the library file ip330ServLib, all code that needs to run on
+    the MPF server is now in ip330Lib.</li>
+</ul>
+<p>&nbsp;</p>
+
 <hr>
 
 <address>
     Suggestions and Comments to: <br>
     <a href="mailto:rivers@cars.uchicago.edu">Mark Rivers </a>:
     (rivers@cars.uchicago.edu) <br>
-    Last modified: November 10, 2003
+    Last modified: May 15, 2003
 </address>
 </body>
 </html>

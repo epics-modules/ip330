@@ -1,12 +1,12 @@
 
 file {
-	name="/home/beams/BCDA/epics/synApps_R3.13.1.1_R4.2/share/ipApp/op/adl/Ip330Scan.adl"
-	version=020306
+	name="C:\Program Files\EPICS\op\adl\ipApp\Ip330Scan.adl"
+	version=020305
 }
 display {
 	object {
-		x=422
-		y=379
+		x=263
+		y=31
 		width=430
 		height=490
 	}
@@ -116,6 +116,19 @@ text {
 	textix=" 1"
 	align="horiz. centered"
 }
+"text update" {
+	object {
+		x=31
+		y=78
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)1.DESC"
+		clr=14
+		bclr=56
+	}
+}
 menu {
 	object {
 		x=332
@@ -139,11 +152,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)1.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -157,12 +168,10 @@ menu {
 		clr=14
 		bclr=51
 	}
-	limits {
-	}
 }
 text {
 	object {
-		x=10
+		x=13
 		y=57
 		width=35
 		height=20
@@ -175,7 +184,7 @@ text {
 }
 text {
 	object {
-		x=100
+		x=102
 		y=57
 		width=35
 		height=20
@@ -188,7 +197,7 @@ text {
 }
 text {
 	object {
-		x=215
+		x=222
 		y=57
 		width=35
 		height=20
@@ -201,7 +210,7 @@ text {
 }
 text {
 	object {
-		x=294
+		x=296
 		y=57
 		width=35
 		height=20
@@ -214,7 +223,7 @@ text {
 }
 text {
 	object {
-		x=357
+		x=367
 		y=57
 		width=35
 		height=20
@@ -241,6 +250,19 @@ text {
 	textix=" 2"
 	align="horiz. centered"
 }
+"text update" {
+	object {
+		x=31
+		y=103
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)2.DESC"
+		clr=14
+		bclr=56
+	}
+}
 menu {
 	object {
 		x=332
@@ -264,11 +286,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)2.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -281,8 +301,6 @@ menu {
 		chan="$(P)$(R)2.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -300,6 +318,19 @@ text {
 	}
 	textix=" 3"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=128
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)3.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -324,11 +355,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)3.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -341,8 +370,6 @@ menu {
 		chan="$(P)$(R)3.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -360,6 +387,19 @@ text {
 	}
 	textix=" 4"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=153
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)4.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -384,11 +424,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)4.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -401,8 +439,6 @@ menu {
 		chan="$(P)$(R)4.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -420,6 +456,19 @@ text {
 	}
 	textix=" 5"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=178
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)5.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -444,11 +493,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)5.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -461,8 +508,6 @@ menu {
 		chan="$(P)$(R)5.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -480,6 +525,19 @@ text {
 	}
 	textix=" 6"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=203
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)6.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -504,11 +562,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)6.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -521,8 +577,6 @@ menu {
 		chan="$(P)$(R)6.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -540,6 +594,19 @@ text {
 	}
 	textix=" 7"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=228
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)7.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -564,11 +631,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)7.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -581,8 +646,6 @@ menu {
 		chan="$(P)$(R)7.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -600,6 +663,19 @@ text {
 	}
 	textix=" 8"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=253
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)8.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -624,11 +700,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)8.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -641,8 +715,6 @@ menu {
 		chan="$(P)$(R)8.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -660,6 +732,19 @@ text {
 	}
 	textix=" 9"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=278
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)9.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -684,11 +769,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)9.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -701,8 +784,6 @@ menu {
 		chan="$(P)$(R)9.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -720,6 +801,19 @@ text {
 	}
 	textix="10"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=303
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)10.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -744,11 +838,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)10.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -761,8 +853,6 @@ menu {
 		chan="$(P)$(R)10.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -780,6 +870,19 @@ text {
 	}
 	textix="11"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=328
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)11.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -804,11 +907,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)11.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -821,8 +922,6 @@ menu {
 		chan="$(P)$(R)11.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -840,6 +939,19 @@ text {
 	}
 	textix="12"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=353
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)12.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -864,11 +976,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)12.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -881,8 +991,6 @@ menu {
 		chan="$(P)$(R)12.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -900,6 +1008,19 @@ text {
 	}
 	textix="13"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=378
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)13.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -924,11 +1045,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)13.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -941,8 +1060,6 @@ menu {
 		chan="$(P)$(R)13.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -960,6 +1077,19 @@ text {
 	}
 	textix="14"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=403
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)14.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -984,11 +1114,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)14.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -1001,8 +1129,6 @@ menu {
 		chan="$(P)$(R)14.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -1020,6 +1146,19 @@ text {
 	}
 	textix="15"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=428
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)15.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -1044,11 +1183,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)15.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -1061,8 +1198,6 @@ menu {
 		chan="$(P)$(R)15.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
 	}
 }
 text {
@@ -1080,6 +1215,19 @@ text {
 	}
 	textix="16"
 	align="horiz. centered"
+}
+"text update" {
+	object {
+		x=31
+		y=453
+		width=146
+		height=20
+	}
+	monitor {
+		chan="$(P)$(R)16.DESC"
+		clr=14
+		bclr=56
+	}
 }
 menu {
 	object {
@@ -1104,11 +1252,9 @@ menu {
 	monitor {
 		chan="$(P)$(R)16.VAL"
 		clr=14
-		bclr=55
+		bclr=51
 	}
 	align="horiz. right"
-	limits {
-	}
 }
 "text entry" {
 	object {
@@ -1121,247 +1267,5 @@ menu {
 		chan="$(P)$(R)16.PREC"
 		clr=14
 		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=78
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)1.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=103
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)2.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=128
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)3.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=153
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)4.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=178
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)5.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=203
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)6.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=228
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)7.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=253
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)8.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=278
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)9.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=303
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)10.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=328
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)11.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=353
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)12.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=378
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)13.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=403
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)14.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=428
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)15.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
-	}
-}
-"text entry" {
-	object {
-		x=29
-		y=453
-		width=148
-		height=20
-	}
-	control {
-		chan="$(P)$(R)16.DESC"
-		clr=14
-		bclr=51
-	}
-	limits {
 	}
 }
