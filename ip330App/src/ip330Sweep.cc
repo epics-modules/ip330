@@ -130,8 +130,8 @@ static const iocshArg * sweepArgs[6] = {&sweepArg0,
 static const iocshFuncDef sweepFuncDef = {"initIp330Sweep",6,sweepArgs};
 static void sweepCallFunc(const iocshArgBuf *args)
 {
-    initIp330Sweep(args[0].sval, args[1].sval, (int) args[2].sval,
-                   (int) args[3].sval, (int) args[4].sval, (int) args[5].sval);
+    initIp330Sweep(args[0].sval, args[1].sval, args[2].ival,
+                   args[3].ival, args[4].ival, args[5].ival);
 }
 void ip330SweepRegister(void)
 {

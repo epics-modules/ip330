@@ -144,8 +144,8 @@ static const iocshArg * PIDArgs[6] = {&PIDArg0,
 static const iocshFuncDef PIDFuncDef = {"initIp330PID",6,PIDArgs};
 static void PIDCallFunc(const iocshArgBuf *args)
 {
-    initIp330PID(args[0].sval, args[1].sval, (int) args[2].sval,
-                 args[3].sval, (int) args[4].sval, (int) args[5].sval);
+    initIp330PID(args[0].sval, args[1].sval, args[2].ival,
+                 args[3].sval, args[4].ival, args[5].ival);
 }
 
 void ip330PIDRegister(void)

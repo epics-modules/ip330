@@ -59,6 +59,8 @@ of this distribution.
 #include <gpHash.h>
 #include <iocsh.h>
 #include <epicsExport.h>
+#include <epicsTypes.h>
+#include <symTable.h>
 
 #include "Reboot.h"
 #include "Ip330.h"
@@ -83,7 +85,7 @@ extern "C"
 #else
 #define DEBUG(l,f,v...) { if(l<Ip330Debug) printf(f,## v); }
 #endif
-int Ip330Debug = 0;
+volatile int Ip330Debug = 0;
 }
 
 static const int nRanges=4;
@@ -225,7 +227,9 @@ Ip330 * Ip330::init(
     Ip330 *pIp330 = new Ip330(carrier,slot,type,range,firstChan,lastChan,
                        maxClients, intVec);
     if (ip330Hash == NULL) gphInitPvt(&ip330Hash, 256);
-    GPHENTRY *hashEntry = gphAdd(ip330Hash, serverName, NULL);
+    char *temp = (char *)malloc(strlen(serverName)+1);
+    strcpy(temp, serverName);
+    GPHENTRY *hashEntry = gphAdd(ip330Hash, temp, NULL);
     hashEntry->userPvt = pIp330;
     return(pIp330);
 }
@@ -637,7 +641,7 @@ static const iocshArg initArg2 = { "Slot",iocshArgInt};
 static const iocshArg initArg3 = { "typeString",iocshArgString};
 static const iocshArg initArg4 = { "rangeString",iocshArgString};
 static const iocshArg initArg5 = { "firstChan",iocshArgInt};
-static const iocshArg initArg6 = { "lastChan",iocshArgString};
+static const iocshArg initArg6 = { "lastChan",iocshArgInt};
 static const iocshArg initArg7 = { "maxClients",iocshArgInt};
 static const iocshArg initArg8 = { "intVec",iocshArgInt};
 static const iocshArg * const initArgs[9] = {&initArg0,
@@ -652,9 +656,9 @@ static const iocshArg * const initArgs[9] = {&initArg0,
 static const iocshFuncDef initFuncDef = {"initIp330",9,initArgs};
 static void initCallFunc(const iocshArgBuf *args)
 {
-    initIp330(args[0].sval, (int) args[1].sval, (int) args[2].sval,
-              args[3].sval, args[4].sval, (int) args[5].sval,
-              (int) args[6].sval, (int) args[7].sval, (int) args[8].sval);
+    initIp330(args[0].sval, args[1].ival, args[2].ival,
+              args[3].sval, args[4].sval, args[5].ival,
+              args[6].ival, args[7].ival, args[8].ival);
 }
 
 static const iocshArg configArg0 = { "ip330Name",iocshArgString};
@@ -670,12 +674,13 @@ static const iocshArg * configArgs[5] = {&configArg0,
 static const iocshFuncDef configFuncDef = {"configIp330",9,configArgs};
 static void configCallFunc(const iocshArgBuf *args)
 {
-    configIp330(args[0].sval, (scanModeType)(int) args[1].sval, args[2].sval,
-                (int) args[3].sval, (int) args[4].sval);
+    configIp330(args[0].sval, (scanModeType)args[1].ival, args[2].sval,
+                args[3].ival, args[4].ival);
 }
 
 void ip330Register(void)
 {
+    addSymbol("Ip330Debug", (epicsInt32 *)&Ip330Debug, epicsInt32T);
     iocshRegister(&initFuncDef,initCallFunc);
     iocshRegister(&configFuncDef,configCallFunc);
 }

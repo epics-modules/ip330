@@ -101,7 +101,7 @@ static const iocshArg * configArgs[3] = {&configArg0,
 static const iocshFuncDef configFuncDef = {"initIp330Config",3,configArgs};
 static void configCallFunc(const iocshArgBuf *args)
 {
-    initIp330Config(args[0].sval, args[1].sval, (int) args[2].sval);
+    initIp330Config(args[0].sval, args[1].sval, args[2].ival);
 }
 
 void ip330ConfigRegister(void)
