@@ -17,6 +17,9 @@ of this distribution.
                      time to average be equal to the scan time of the
                      record.  Previously a fixed averaging time was set
                      at boot time and applied to all channels.
+    24-APR-2003 MLR  Removed above change.  The act of reading the average in
+                     ip330Scan now resets the average, so the entire concept of
+                     a set time to average for has been eliminated.
 
 */
 
@@ -25,7 +28,7 @@ of this distribution.
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
- 
+
 extern "C" {
 #include "dbAccess.h"
 #include "dbDefs.h"
@@ -47,17 +50,12 @@ public:
         DevAiIp330Scan(dbCommon*,DBLINK*);
         long startIO(dbCommon* pr);
         long completeIO(dbCommon* pr,Message* m);
-	long convert(dbCommon* pr,int pass);
-	static long dev_init(void*);
+        long convert(dbCommon* pr,int pass);
+        static long dev_init(void*);
 private:
-	int channel;
-	int gain;
+        int channel;
+        int gain;
 };
-
-// The following definition is bad, it assumes the standard EPICS scan rates.
-//  But EPICS does not provide an API to get the actual scan rates of the tasks,
-// so we live with it for now.
-static int epics_scan_times[]={10000, 5000, 2000, 1000, 500, 200, 100};
 
 MAKE_LINCONV_DSET(devAiIp330Scan,DevAiIp330Scan::dev_init)
 
@@ -71,8 +69,8 @@ DevAiIp330Scan::DevAiIp330Scan(dbCommon* pr,DBLINK* l) : DevMpf(pr,l,false)
     if(up && strlen(up)>0) {
         // decode the parm field, format: "gain"
         if((sscanf(up,"%d",&gain)<1) || gain<0 || gain>3) {
-	    epicsPrintf("%s Illegal INP parm field\n", prec->name);
-	    prec->pact=TRUE;
+            epicsPrintf("%s Illegal INP parm field\n", prec->name);
+            prec->pact=TRUE;
         }
     }
     convert((dbCommon *)prec,1);
@@ -81,14 +79,9 @@ DevAiIp330Scan::DevAiIp330Scan(dbCommon* pr,DBLINK* l) : DevMpf(pr,l,false)
 
 long DevAiIp330Scan::startIO(dbCommon* pr)
 {
-    aiRecord* pai = (aiRecord*)pr;
     Int32Message *message = new Int32Message;
     message->value =gain;
     message->address =channel;
-    message->extra = 0;
-    if ((pai->scan >= SCAN_1ST_PERIODIC) && (pai->scan <= 9)) {
-    	message->extra = epics_scan_times[pai->scan - SCAN_1ST_PERIODIC];
-    }
     return(sendReply(message));
 }
 
@@ -96,8 +89,8 @@ long DevAiIp330Scan::completeIO(dbCommon* pr,Message* m)
 {
     aiRecord* pai = (aiRecord*)pr;
     if((m->getType()) != messageTypeInt32) {
-	epicsPrintf("%s ::completeIO illegal message type %d\n",
-		    pai->name,m->getType());
+        epicsPrintf("%s ::completeIO illegal message type %d\n",
+                    pai->name,m->getType());
         recGblSetSevr(pai,READ_ALARM,INVALID_ALARM);
         delete m;
         return(MPF_NoConvert);
@@ -123,10 +116,9 @@ long DevAiIp330Scan::convert(dbCommon* pr,int /*pass*/)
 
 long DevAiIp330Scan::dev_init(void* v)
 {
-	aiRecord* pr = (aiRecord*)v;
-	DevAiIp330Scan* pDevAiIp330Scan
-            = new DevAiIp330Scan((dbCommon*)pr,&(pr->inp));
-      pDevAiIp330Scan->bind();
-	return pDevAiIp330Scan->getStatus();
+   aiRecord* pr = (aiRecord*)v;
+   DevAiIp330Scan* pDevAiIp330Scan = 
+      new DevAiIp330Scan((dbCommon*)pr,&(pr->inp));
+   pDevAiIp330Scan->bind();
+   return pDevAiIp330Scan->getStatus();
 }
-
