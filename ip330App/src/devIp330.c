@@ -5,9 +5,9 @@
     July 7, 2004 MLR Converted from MPF and C++ to asyn and C
 
     Device support for Ip330. Records supported include:
-    ai     - averages readings from Ip330
     longout - sends calibration interval in integer seconds
 
+    NOTE: Gain is no longer supported, this must be added via an ao record 
 */
 
 #include <stdlib.h>
@@ -18,7 +18,6 @@
 #include <dbDefs.h>
 #include <link.h>
 #include <dbCommon.h>
-#include <aiRecord.h>
 #include <longoutRecord.h>
 #include <recSup.h>
 #include <devSup.h>
@@ -41,16 +40,11 @@ typedef enum {recTypeAi, recTypeLo} recType;
 
 typedef struct devIp330Pvt {
     asynUser          *pasynUser;
-    asynInt32Callback *int32Callback;
-    void              *int32CallbackPvt;
     asynIp330         *ip330;
     void              *ip330Pvt;
-    epicsMutexId      mutexId;
     int               channel;
     int               command;
     recType           recType;
-    double            sum;
-    int               numAverage;
 } devIp330Pvt;
 
 typedef struct dsetIp330 {
@@ -66,19 +60,12 @@ typedef struct dsetIp330 {
 static long initCommon(dbCommon *pr, DBLINK *plink, recType rt, 
                        userCallback callback, char **up);
 
-static long initAi(aiRecord *pr);
-static long readAi(aiRecord *pr);
-static void callbackAi(asynUser *pasynUser);
-static void dataCallbackAi(void *drvPvt, epicsInt32 value);
-static long convertAi(aiRecord *pai, int pass);
 static long initLo(longoutRecord *pr);
 static long writeLo(longoutRecord *pr);
 static void callbackLo(asynUser *pasynUser);
 
-dsetIp330 devAiIp330 = {6, 0, 0, initAi, 0, readAi, convertAi};
 dsetIp330 devLoIp330 = {6, 0, 0, initLo, 0, writeLo, 0};
 
-epicsExportAddress(dset, devAiIp330);
 epicsExportAddress(dset, devLoIp330);
 
 
@@ -121,96 +108,10 @@ static long initCommon(dbCommon *pr, DBLINK *plink, recType rt,
     }
     pPvt->ip330 = (asynIp330 *)pasynInterface->pinterface;
     pPvt->ip330Pvt = pasynInterface->drvPvt;
-    pasynInterface = pasynManager->findInterface(pasynUser, 
-                                                 asynInt32CallbackType, 1);
-    if (!pasynInterface) {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "devIp330::initCommon, cannot find int32Callback interface %s\n",
-                  pasynUser->errorMessage);
-        goto bad;
-    }
-    pPvt->int32Callback = (asynInt32Callback *)pasynInterface->pinterface;
-    pPvt->int32CallbackPvt = pasynInterface->drvPvt;
     return(0);
 bad:
     pr->pact = 1;
     return(-1);
-}
-
-
-static long initAi(aiRecord *pai)
-{
-    char *up;
-    devIp330Pvt *pPvt;
-    int status;
-    int gain;
-
-    status = initCommon((dbCommon *)pai, &pai->inp, recTypeAi, callbackAi, &up);
-    if (status) return 0;
-
-    pPvt = (devIp330Pvt *)pai->dpvt;
-    if (pPvt->channel < 0 || pPvt->channel > 31) {
-        errlogPrintf("devIp330::initAi Invalid signal #: %s = %dn", 
-                     pai->name, pPvt->channel);
-        pai->pact=1;
-    }
-    if(up && strlen(up)>0) {
-        /* decode the user parm field, format: "gain" */
-        if((sscanf(up,"%d",&gain)<1) || gain<0 || gain>3) {
-            errlogPrintf("devIp330::initAi %s illegal gain\n", pai->name);
-            pai->pact=1;
-        }
-    }
-    pPvt->mutexId = epicsMutexCreate();
-    pPvt->int32Callback->registerCallbacks(pPvt->int32CallbackPvt,
-                                           pPvt->pasynUser,
-                                           dataCallbackAi, 0, 
-                                           pPvt);
-    pPvt->ip330->setGain(pPvt->ip330Pvt, pPvt->pasynUser, gain);
-    convertAi(pai, 1);
-    return(0);
-}
-
-static void dataCallbackAi(void *drvPvt, epicsInt32 value)
-{
-    devIp330Pvt *pPvt = (devIp330Pvt *)drvPvt;
-
-    epicsMutexLock(pPvt->mutexId);
-    pPvt->numAverage++;
-    pPvt->sum += value;
-    epicsMutexUnlock(pPvt->mutexId);
-}
-
-static void callbackAi(asynUser *pasynUser)
-{
-    /* This should never be called */
-    asynPrint(pasynUser, ASYN_TRACE_ERROR,
-              "devIp330::callbackAi, should not be called\n");
-}
-
-static long readAi(aiRecord *pai)
-{
-    devIp330Pvt *pPvt = (devIp330Pvt *)pai->dpvt;
-    int data;
-
-    epicsMutexLock(pPvt->mutexId);
-    if (pPvt->numAverage == 0) pPvt->numAverage = 1;
-    data = pPvt->sum/pPvt->numAverage + 0.5;
-    pPvt->numAverage = 0;
-    pPvt->sum = 0.;
-    epicsMutexUnlock(pPvt->mutexId);
-    pai->rval = data;
-    pai->udf=0;
-    asynPrint(pPvt->pasynUser, ASYN_TRACEIO_DEVICE,
-              "devIp330::readAi %s value=%d\n",
-              pai->name, pai->rval);
-    return(0);
-}
-
-static long convertAi(aiRecord *pai, int pass)
-{
-    pai->eslo=(pai->eguf-pai->egul)/(double)0xffff;
-    return 0;
 }
 
 
