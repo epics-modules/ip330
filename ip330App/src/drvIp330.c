@@ -67,24 +67,14 @@ of this distribution.
 #include <cantProceed.h>
 #include <asynDriver.h>
 #include <asynInt32.h>
+#include <asynUInt32Digital.h>
 #include <asynFloat64.h>
 #include <asynInt32Callback.h>
 #include <asynFloat64Callback.h>
 #include <asynInt32ArrayCallback.h>
+#include <asynDrvUser.h>
 
-#include "asynIp330.h" 
-
-/* Implements the following asyn interfaces:
-   asynInt32:           reads the current value of a channel
-   asynInt32Callback:   callback with the current value of a channel
-   asynFloat64:         reads the current value of a channel
-                        reads the current callback interval
-   asynFloat64Callback: callback with the current value of a channel
-                        callback with the current sampling interval
-   asynDrvUser:         Sets the asyn user for float64 and float64Callback
-                        for current value ("DATA") or the sampling interval
-                        ("INTERVAL")
-*/
+#include "drvIp330.h" 
 
 #define SCAN_DISABLE    0xC8FF  /* control register AND mask - */
                                 /* SCAN and INTERRUPT disable */
@@ -102,22 +92,24 @@ of this distribution.
 
 #define MAX_IP330_CHANNELS 32
 
+typedef struct {
+    ip330Command command;
+    char *commandString;
+} ip330CommandStruct;
+
+static ip330CommandStruct ip330Commands[MAX_IP330_COMMANDS] = {
+    {ip330Data,            "DATA"},
+    {ip330Gain,            "GAIN"},
+    {ip330ScanPeriod,      "SCAN_PERIOD"},
+    {ip330CalibratePeriod, "CALIBRATE_PERIOD"}
+};
+
 typedef enum {differential, singleEnded} signalType;
 typedef enum {disable, uniformContinuous, uniformSingle, burstContinuous,
               burstSingle, convertOnExternalTriggerOnly} scanModeType;
 typedef enum {input, output} triggerType;
 
 typedef enum{typeInt32, typeFloat64, typeInt32Array} dataType;
-
-typedef enum{float64Data, float64Interval} commandType;
-
-typedef struct {
-    commandType command;
-    char *commandString;
-} commandStruct;
-
-static commandStruct allCommands[] = {{float64Data,"DATA"}, 
-                               {float64Interval,"INTERVAL"}};
 
 #define nRanges 4
 #define nGains 4
@@ -190,7 +182,7 @@ typedef struct {
     void (*int32ArrayCallback)(void *drvPvt, epicsInt32 *data);
     void *pvt;
     dataType dataType;
-    commandStruct *pcommandStruct;
+    ip330Command *pcommand;
     int channel;
 } ip330Client;
 
@@ -221,23 +213,25 @@ typedef struct drvIp330Pvt {
     ELLLIST clientList;
     asynInterface common;
     asynInterface int32;
+    asynInterface uint32Digital;
     asynInterface float64;
     asynInterface int32Callback;
     asynInterface float64Callback;
     asynInterface int32ArrayCallback;
-    asynInterface ip330;
+    asynInterface drvUser;
 } drvIp330Pvt;
 
 /* These functions are used by the interfaces */
-static double setScanPeriod         (void *drvPvt, asynUser *pasynUser,
-                                     double seconds);
-static double getScanPeriod         (void *drvPvt, asynUser *pasynUser);
 static asynStatus readInt32         (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 *value);
 static asynStatus writeInt32        (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 value);
 static asynStatus getBounds         (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 *low, epicsInt32 *high);
+static asynStatus readUInt32Digital (void *drvPvt, asynUser *pasynUser,
+                                     epicsUInt32 *value, epicsUInt32 mask);
+static asynStatus writeUInt32Digital(void *drvPvt, asynUser *pasynUser,
+                                     epicsUInt32 value, epicsUInt32 mask);
 static asynStatus readFloat64       (void *drvPvt, asynUser *pasynUser,
                                      epicsFloat64 *value);
 static asynStatus writeFloat64      (void *drvPvt, asynUser *pasynUser,
@@ -246,7 +240,15 @@ static asynStatus registerInt32Callback (void *drvPvt, asynUser *pasynUser,
                                      void (*callback)(void *drvPvt, 
                                                       epicsInt32 data),
                                      void *pvt);
-static asynStatus registerFloat64Callback  (void *drvPvt, asynUser *pasynUser,
+static asynStatus cancelInt32Callback (void *drvPvt, asynUser *pasynUser,
+                                     void (*callback)(void *drvPvt, 
+                                                      epicsInt32 data),
+                                     void *pvt);
+static asynStatus registerFloat64Callback (void *drvPvt, asynUser *pasynUser,
+                                     void (*callback)(void *drvPvt, 
+                                                      epicsFloat64 data),
+                                     void *pvt);
+static asynStatus cancelFloat64Callback (void *drvPvt, asynUser *pasynUser,
                                      void (*callback)(void *drvPvt, 
                                                       epicsFloat64 data),
                                      void *pvt);
@@ -255,14 +257,22 @@ static asynStatus registerInt32ArrayCallback(void *drvPvt, asynUser *pasynUser,
                                                       epicsInt32 *data,
                                                       epicsUInt32 nelem),
                                      void *pvt);
+static asynStatus cancelInt32ArrayCallback(void *drvPvt, asynUser *pasynUser,
+                                     void (*callback)(void *drvPvt, 
+                                                      epicsInt32 *data,
+                                                      epicsUInt32 nelem),
+                                     void *pvt);
+static asynStatus drvUserCreate     (void *drvPvt, asynUser *pasynUser,
+                                     const char *drvInfo, 
+                                     const char **pptypeName, size_t *psize);
+static asynStatus drvUserGetType    (void *drvPvt, asynUser *pasynUser,
+                                     const char **pptypeName, size_t *psize);
+static asynStatus drvUserDestroy    (void *drvPvt, asynUser *pasynUser);
+
 static void report                  (void *drvPvt, FILE *fp, int details);
 static asynStatus connect           (void *drvPvt, asynUser *pasynUser);
 static asynStatus disconnect        (void *drvPvt, asynUser *pasynUser);
 
-static asynStatus setGain           (void *drvPvt, asynUser *pasynUser,
-                                     int gain);
-static asynStatus setSecondsBetweenCalibrate (void *drvPvt, asynUser *pasynUser,
-                                              double seconds);
 
 /* These are private functions, not used in any interfaces */
 static void intFunc           (void *drvPvt); /* Interrupt function */
@@ -276,10 +286,20 @@ static int config             (drvIp330Pvt *pPvt, scanModeType scanMode,
                                int secondsBetweenCalibrate);
 static int setScanMode        (drvIp330Pvt *pPvt, scanModeType scanMode);
 static int setTrigger         (drvIp330Pvt *pPvt, triggerType trigger);
+static asynStatus setGain     (void *drvPvt, asynUser *pasynUser,
+                               int gain);
 static int setGainPrivate     (drvIp330Pvt *pPvt, int range, int gain, 
                                int channel);
-static asynStatus registerCallback(void *drvPvt, asynUser *pasynUser,
-                                   void *callback, void *pvt, dataType dataType);
+static asynStatus setSecondsBetweenCalibrate (void *drvPvt, asynUser *pasynUser,
+                                              double seconds);
+static double setScanPeriod   (void *drvPvt, asynUser *pasynUser,
+                               double seconds);
+static double getScanPeriod   (void *drvPvt, asynUser *pasynUser);
+static double getActualScanPeriod (drvIp330Pvt *pPvt);
+static asynStatus registerCallback (void *drvPvt, asynUser *pasynUser,
+                                    void *callback, void *pvt, dataType dataType);
+static asynStatus cancelCallback (void *drvPvt, asynUser *pasynUser,
+                                  void *callback, void *pvt, dataType dataType);
      
 static const asynCommon drvIp330Common = {
     report,
@@ -293,26 +313,35 @@ static const asynInt32 drvIp330Int32 = {
     getBounds
 };
 
+static const asynUInt32Digital drvIp330UInt32Digital = {
+    writeUInt32Digital,
+    readUInt32Digital
+};
+
 static const asynFloat64 drvIp330Float64 = {
     writeFloat64,
     readFloat64
 };
 
 static const asynInt32Callback drvIp330Int32Callback = {
-    registerInt32Callback
+    registerInt32Callback,
+    cancelInt32Callback
 };
 
 static const asynInt32ArrayCallback drvIp330Int32ArrayCallback = {
-    registerInt32ArrayCallback
+    registerInt32ArrayCallback,
+    cancelInt32ArrayCallback
 };
 
 static const asynFloat64Callback drvIp330Float64Callback = {
-    registerFloat64Callback
+    registerFloat64Callback,
+    cancelFloat64Callback
 };
 
-static const asynIp330 drvIp330 = {
-    setGain,
-    setSecondsBetweenCalibrate
+static const asynDrvUser drvIp330DrvUser = {
+    drvUserCreate,
+    drvUserGetType,
+    drvUserDestroy
 };
 
 
@@ -384,6 +413,9 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     pPvt->int32.interfaceType = asynInt32Type;
     pPvt->int32.pinterface  = (void *)&drvIp330Int32;
     pPvt->int32.drvPvt = pPvt;
+    pPvt->uint32Digital.interfaceType = asynUInt32DigitalType;
+    pPvt->uint32Digital.pinterface  = (void *)&drvIp330UInt32Digital;
+    pPvt->uint32Digital.drvPvt = pPvt;
     pPvt->float64.interfaceType = asynFloat64Type;
     pPvt->float64.pinterface  = (void *)&drvIp330Float64;
     pPvt->float64.drvPvt = pPvt;
@@ -396,9 +428,9 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     pPvt->int32ArrayCallback.interfaceType = asynInt32ArrayCallbackType;
     pPvt->int32ArrayCallback.pinterface  = (void *)&drvIp330Int32ArrayCallback;
     pPvt->int32ArrayCallback.drvPvt = pPvt;
-    pPvt->ip330.interfaceType = asynIp330Type;
-    pPvt->ip330.pinterface  = (void *)&drvIp330;
-    pPvt->ip330.drvPvt = pPvt;
+    pPvt->drvUser.interfaceType = asynDrvUserType;
+    pPvt->drvUser.pinterface  = (void *)&drvIp330DrvUser;
+    pPvt->drvUser.drvPvt = pPvt;
     status = pasynManager->registerPort(portName,
                                         ASYN_MULTIDEVICE, /*is multiDevice*/
                                         1,  /*  autoconnect */
@@ -416,6 +448,11 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     status = pasynManager->registerInterface(pPvt->portName,&pPvt->int32);
     if (status != asynSuccess) {
         errlogPrintf("initIp330 ERROR: Can't register int32\n");
+        return -1;
+    }
+    status = pasynManager->registerInterface(pPvt->portName,&pPvt->uint32Digital);
+    if (status != asynSuccess) {
+        errlogPrintf("initIp330 ERROR: Can't register uint32Digital\n");
         return -1;
     }
     status = pasynManager->registerInterface(pPvt->portName,&pPvt->float64);
@@ -441,9 +478,9 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
         errlogPrintf("initIp330 ERROR: Can't register int32ArrayCallback\n");
         return -1;
     }
-    status = pasynManager->registerInterface(pPvt->portName,&pPvt->ip330);
+    status = pasynManager->registerInterface(pPvt->portName,&pPvt->drvUser);
     if (status != asynSuccess) {
-        errlogPrintf("initIp330 ERROR: Can't register ip330.\n");
+        errlogPrintf("initIp330 ERROR: Can't register drvUser\n");
         return -1;
     }
 
@@ -508,9 +545,9 @@ int configIp330(const char *portName, scanModeType scanMode,
                      pasynUser->errorMessage);
         return -1;
     }
-    pasynInterface = pasynManager->findInterface(pasynUser, asynIp330Type, 1);
+    pasynInterface = pasynManager->findInterface(pasynUser, asynFloat64Type, 1);
     if (!pasynInterface) {
-        errlogPrintf("initIp330 cannot find Ipi330 interface %s\n",
+        errlogPrintf("initIp330 cannot find Float64 interface %s\n",
                      pasynUser->errorMessage);
         return -1;
     }
@@ -557,21 +594,68 @@ static asynStatus readInt32(void *drvPvt, asynUser *pasynUser,
 {
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int channel;
+    ip330Command *pcommand = pasynUser->drvUser;
 
     if (pPvt->rebooting) taskSuspend(0);
     pasynManager->getAddr(pasynUser, &channel);
-    *value = pPvt->correctedData[channel];
-    return(asynSuccess);
+    if ((pcommand == NULL) || (*pcommand == ip330Data)) {
+        *value = pPvt->correctedData[channel];
+        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+                  "drvIp330::readInt32, value=%d", *value);
+        return(asynSuccess);
+    } else {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::readInt32 invalid command=%d\n",
+                  *pcommand);
+        return(asynError);
+    }
+}
+
+static asynStatus readUInt32Digital(void *drvPvt, asynUser *pasynUser, 
+                                    epicsUInt32 *value, epicsUInt32 mask)
+{
+    drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
+    int channel;
+    ip330Command *pcommand = pasynUser->drvUser;
+
+    if (pPvt->rebooting) taskSuspend(0);
+    pasynManager->getAddr(pasynUser, &channel);
+    if ((pcommand == NULL) || (*pcommand == ip330Gain)) {
+        *value = pPvt->chanSettings[channel].gain;
+        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+                  "drvIp330::readUInt32Digital, value=%d", *value);
+        return(asynSuccess);
+    } else {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::readUInt32Digital invalid command=%d\n",
+                  *pcommand);
+        return(asynError);
+    }
 }
 
 static asynStatus readFloat64(void *drvPvt, asynUser *pasynUser,
                               epicsFloat64 *value)
 {
+    drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int ivalue;
-    asynStatus status;
+    asynStatus status = asynSuccess;
+    ip330Command *pcommand = pasynUser->drvUser;
 
-    status = readInt32(drvPvt, pasynUser, &ivalue);
-    *value = (double)ivalue;
+    if ((pcommand == NULL) || (*pcommand == ip330Data)) {
+        status = readInt32(drvPvt, pasynUser, &ivalue);
+        *value = (double)ivalue;
+    } else if (*pcommand == ip330ScanPeriod) {
+        *value = getScanPeriod(drvPvt, pasynUser);
+    } else if (*pcommand == ip330CalibratePeriod) {
+        *value = pPvt->secondsBetweenCalibrate;
+    } else {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::readFloat64 invalid command=%d\n",
+                  *pcommand);
+        return(asynError);
+    }
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+              "drvIp330::readFloat64, value=%f", *value);
     return(status);
 }
 
@@ -588,15 +672,53 @@ static asynStatus getBounds(void *drvPvt, asynUser *pasynUser,
 {
     *low = 0;
     *high = 65535;
-    return(0);
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+              "drvIp330::getBounds,low=%d, high=%d\n", *low, *high);
+    return(asynSuccess);
+}
+
+static asynStatus writeUInt32Digital(void *drvPvt, asynUser *pasynUser, 
+                                     epicsUInt32 value, epicsUInt32 mask)
+{
+    ip330Command *pcommand = pasynUser->drvUser;
+    asynStatus status;
+
+    if ((pcommand == NULL) || (*pcommand == ip330Gain)) {
+        status = setGain(drvPvt, pasynUser, value);
+        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+                  "drvIp330::writeUInt32Digital, value=%d", value);
+        return(status);
+    } else {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::writeUInt32Digital invalid command=%d\n",
+                  *pcommand);
+        return(asynError);
+    }
 }
 
 static asynStatus writeFloat64(void *drvPvt, asynUser *pasynUser, 
                                epicsFloat64 value)
 {
-    asynPrint(pasynUser, ASYN_TRACE_ERROR,
-              "drvIp330::writeFloat64 invalid command\n");
-    return(asynError);
+    ip330Command *pcommand = pasynUser->drvUser;
+    asynStatus status=asynError;
+
+    if ((pcommand == NULL) || (*pcommand == ip330Data)) {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::writeFloat64 invalid command\n");
+        return(asynError);
+    } else if (*pcommand == ip330ScanPeriod) {
+        status = setScanPeriod(drvPvt, pasynUser, value);
+    } else if (*pcommand == ip330CalibratePeriod) {
+        status = setSecondsBetweenCalibrate(drvPvt, pasynUser, value);
+    } else {
+        asynPrint(pasynUser, ASYN_TRACE_ERROR,
+                  "drvIp330::writeFloat64 invalid command=%d,
+                  *pcommand\n");
+        return(asynError);
+    }
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+              "drvIp330::writeFloat64, value=%f", value);
+    return(status);
 }
 
 static void correctAll(drvIp330Pvt *pPvt)
@@ -722,7 +844,7 @@ static asynStatus registerCallback(void *drvPvt, asynUser *pasynUser,
                                               "drvIp330::registerCallback");
 
     pClient->dataType = dataType;
-    pClient->pcommandStruct = pasynUser->drvUser;
+    pClient->pcommand = pasynUser->drvUser;
     pasynManager->getAddr(pasynUser, &pClient->channel);
     switch(dataType) {
     case typeInt32:
@@ -737,6 +859,62 @@ static asynStatus registerCallback(void *drvPvt, asynUser *pasynUser,
     }
     pClient->pvt = pvt;
     ellAdd(&pPvt->clientList, (ELLNODE *)pClient);
+    return(asynSuccess);
+}
+
+static asynStatus cancelInt32Callback(void *drvPvt, asynUser *pasynUser,
+                                      void (*callback)(void *drvPvt,
+                                                       epicsInt32 data),
+                                      void *pvt)
+{
+    return(cancelCallback(drvPvt, pasynUser, callback, pvt, typeInt32));
+}
+
+static asynStatus cancelFloat64Callback(void *drvPvt, asynUser *pasynUser,
+                                        void (*callback)(void *drvPvt,
+                                                         epicsFloat64 data),
+                                        void *pvt)
+{
+    return(cancelCallback(drvPvt, pasynUser, callback, pvt, typeFloat64));
+}
+
+static asynStatus cancelInt32ArrayCallback(void *drvPvt, asynUser *pasynUser,
+                                           void (*callback)(void *drvpvt,
+                                                            epicsInt32 *data,
+                                                            epicsUInt32 nelem),
+                                           void *pvt)
+{
+    return(cancelCallback(drvPvt, pasynUser, callback, pvt, typeInt32Array));
+}
+
+static asynStatus cancelCallback(void *drvPvt, asynUser *pasynUser,
+                                 void *callback, void *pvt, dataType dataType)
+{
+    drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
+    void *clbk=NULL;
+    ip330Client *pClient;
+
+    pClient = (ip330Client *)ellFirst(&pPvt->clientList);
+    while(pClient) {
+        switch(dataType) {
+        case typeInt32:
+            clbk = pClient->int32Callback;
+            break;
+        case typeFloat64:
+            clbk = pClient->float64Callback;
+            break;
+        case typeInt32Array:
+            clbk = pClient->int32ArrayCallback;
+            break;
+        }
+        if ((pClient->dataType == dataType) &&
+            (pClient->pvt == pvt) &&
+            (pClient->pcommand == pasynUser->drvUser) &&
+            (clbk == callback)) {
+            ellDelete(&pPvt->clientList, (ELLNODE *)pClient);
+        }
+        pClient = (ip330Client *)ellNext(pClient);
+    }
     return(asynSuccess);
 }
 
@@ -786,22 +964,25 @@ static void intTask(drvIp330Pvt *pPvt)
        /* Call the callback routines which have registered */
        pClient = (ip330Client *)ellFirst(&pPvt->clientList);
        while(pClient) {
-           switch(pClient->dataType) {
-           case typeInt32:
-               if (pClient->int32Callback) 
-                   pClient->int32Callback(pClient->pvt,
+           if ((pClient->pcommand == NULL) ||
+               (*pClient->pcommand == ip330Data)) {
+               switch(pClient->dataType) {
+               case typeInt32:
+                   if (pClient->int32Callback) 
+                       pClient->int32Callback(pClient->pvt,
                                          pPvt->correctedData[pClient->channel]);
-               break;
-           case typeFloat64:
-               if (pClient->float64Callback)
-                   pClient->float64Callback(pClient->pvt,
-                                (double)pPvt->correctedData[pClient->channel]);
-               break;
-           case typeInt32Array:
-               if (pClient->int32ArrayCallback)
-                   pClient->int32ArrayCallback(pClient->pvt,
-                                               pPvt->correctedData);
-               break;
+                   break;
+               case typeFloat64:
+                   if (pClient->float64Callback)
+                       pClient->float64Callback(pClient->pvt,
+                                 (double)pPvt->correctedData[pClient->channel]);
+                   break;
+               case typeInt32Array:
+                   if (pClient->int32ArrayCallback)
+                       pClient->int32ArrayCallback(pClient->pvt,
+                                                   pPvt->correctedData);
+                   break;
+               }
            }
            pClient = (ip330Client *)ellNext(pClient);
        }
@@ -1017,8 +1198,8 @@ finish:
     pClient = (ip330Client *)ellFirst(&pPvt->clientList);
     while(pClient) {
        if ((pClient->dataType == typeFloat64) &&
-           (pClient->pcommandStruct) &&
-           (pClient->pcommandStruct->command == float64Interval) &&
+           (pClient->pcommand) &&
+           (*pClient->pcommand == ip330ScanPeriod) &&
            (pClient->float64Callback))
                 pClient->float64Callback(pClient->pvt,
                                          pPvt->actualScanPeriod);
@@ -1030,6 +1211,50 @@ finish:
               "   prescale=%d, convert=%d, actual=%f\n",
               seconds, timePrescale, timeConvert, pPvt->actualScanPeriod);
     if (status == 0) return(pPvt->actualScanPeriod); else return(-1.);
+}
+
+
+/* asynDrvUser routines */
+static asynStatus drvUserCreate(void *drvPvt, asynUser *pasynUser,
+                                const char *drvInfo, 
+                                const char **pptypeName, size_t *psize)
+{
+    int i;
+    char *pstring;
+
+    for (i=0; i<MAX_IP330_COMMANDS; i++) {
+        pstring = ip330Commands[i].commandString;
+        if (epicsStrCaseCmp(drvInfo, pstring) == 0) {
+            pasynUser->drvUser = &ip330Commands[i].command;
+            *pptypeName = epicsStrDup(pstring);
+            *psize = sizeof(ip330Command);
+            asynPrint(pasynUser, ASYN_TRACE_FLOW,
+              "drvIp330::drvUserCreate, command=%s\n", pstring);
+            return(asynSuccess);
+        }
+    }
+    asynPrint(pasynUser, ASYN_TRACE_ERROR,
+              "drvIp330::drvUserCreate, unknown command=%s\n", drvInfo);
+    return(asynError);
+}
+    
+static asynStatus drvUserGetType(void *drvPvt, asynUser *pasynUser,
+                                 const char **pptypeName, size_t *psize)
+{
+    ip330Command *pcommand = pasynUser->drvUser;
+
+    *pptypeName = NULL;
+    *psize = 0;
+    if (pcommand) {
+        *pptypeName = epicsStrDup(ip330Commands[*pcommand].commandString);
+        *psize = sizeof(*pcommand);
+    }
+    return(asynSuccess);
+}
+
+static asynStatus drvUserDestroy(void *drvPvt, asynUser *pasynUser)
+{
+    return(asynSuccess);
 }
 
 /* asynCommon routines */
