@@ -1,29 +1,43 @@
 <html>
 
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
-<meta name="ProgId" content="FrontPage.Editor.Document">
-<title>Release notes</title>
+<title>ip330ReleaseNotes</title>
 </head>
 
 <body>
-
 <h1 align="center">ip330 Release Notes<br>
 </h1>
 
-<h3>Release 2-2 March 4,2004</h3>
-Docs updated, renamed, and moved to documentation directory.
+<h3>Release 2-3 March 23, 2005</h3>
+<p>Major re-write:</p>
+<ul>
+  <li>Converted from MPF to ASYN.</li>
+  <li>Converted from specialized device support to generic device support from ASYN, MCA and STD.</li>
+  <li>Converted from C++ to C</li>
+</ul>
+<p></p>
+
+<h3>Release 2-2 March 4, 2004</h3>
+<p>Minor changes:</p>
+<ul>
+  <li>Documentation updated, renamed, and moved to documentation directory.</li>
+  <li>Added new medm .adl files</li>
+</ul>
+<p></p>
 
 <h3>Release 2-1 November 3, 2003</h3>
+<p>Major re-write:
 <ul>
-  <li>                 Converted to EPICS 3.14.</li>
-  <li>                 THIS DOCUMENTATION NEEDS WORK</li>
+  <li>Converted to EPICS 3.14.</li>
+  <li>Removed vxWorks dependencies, converted to OSI</li>
+  <li>Added iocsh configuration commands</li>
+  <li>Configuration routine registers server name, no longer return class pointer</li>
 </ul>
-<h3>&nbsp;</h3>
+<p></p>
+
 <h3>Release 1-7 April 25, 2003</h3>
 <ul>
-  <li>                 Changed the way averaging is done in the ip330Scan class
+  <li>Changed the way averaging is done in the ip330Scan class
     again.&nbsp; Removed completely the concept of milliSecondsToAverage.&nbsp;
     Now the act of reading the value for a channel computes the average, and
     then resets the averaging process by setting the sum and number of samples
@@ -75,7 +89,7 @@ Docs updated, renamed, and moved to documentation directory.
 </ul>
 <h3>Release 1-6 March 31, 2003</h3>
 <ul>
-  <li>                 Changed the way averaging is done in the ip330Scan
+  <li>Changed the way averaging is done in the ip330Scan
     class.&nbsp; Previously there was a single averaging time for all input
     channels, that was set at boot time with the milliSecondsToAverage parameter
     in the call to initIp330Scan().&nbsp; This was not the best way to do it,
@@ -93,40 +107,42 @@ Docs updated, renamed, and moved to documentation directory.
     changes these scan times it will not work correctly, because there is no API
     available to determine the actual scan time of a record.</li>
 </ul>
+<p></p>
 
 <h3>Release 1-5 July 31, 2002 (Carl Lionberger and Eric Snow at SNS)</h3>
 <ul>
-  <li>                 Moved interrupt enable to end of config.&nbsp; It was
+  <li>Moved interrupt enable to end of config.&nbsp; It was
     generating lots of interrupts before being fully configured.</li>
   <li>Properly masked mode control bits in setScanMode, was not working in modes
     other than burstContinuous</li>
   <li>Adjusted mailBoxOffset for uniformSingle and burstSingle scan modes in intFunc.<br>
   </li>
 </ul>
+<p></p>
 
 <h3>Release 1-4 October 12, 2001</h3>
-
 <ul>
     <li>Added code to handle soft reboots.<br>
 </ul>
+<p></p>
 
 <h3>Release 1-3 August 28, 2001</h3>
-
 <ul>
-    <li>                 Removed calls to intClear and intDisable. These were not necessary and did not work on dumb IP carrier.<br>
+    <li>Removed calls to intClear and intDisable. 
+        These were not necessary and did not work on dumb IP carrier.<br>
 </ul>
+<p></p>
 
 <h3>Release 1-2 January 16, 2001</h3>
-
 <ul>
     <li>Fixed a bug which caused the IOC to crash if the external trigger line
         was asserted during a hardware reboot.
     <li>Fixed bugs which caused the IOC to crash if the IP330 hardware was not
         installed but server configuration commands were present in the startup file.
 </ul>
+<p></p>
 
 <h3>Release 1-1 November 1, 2000 (Marty Kraimer)</h3>
-
 <ul>
     <li>Added the configuration server.</li>
     <li>Added a lock that protects adj_slope and adj_offset
@@ -136,9 +152,9 @@ Docs updated, renamed, and moved to documentation directory.
     <li>After calibration set mailBoxOffset=16. Caused a bad reading.</li>
     <li>If secondsBetween Calibrate<0 then return raw value.</li>
 </ul>
+<p></p>
 
 <h3>Release 1-02 September 10, 2000</h3>
-
 <p>Changed ip330SweepServer.cc, removed Ip330SweepServer.h, and
 replaced devMcaIp330.cc with a device-independent layer, devMcaMpf.cc. devMcaMpf.cc is part of
 mcaApp, not part of Ip330,
@@ -148,17 +164,16 @@ new device-independent layer.</p>
 
 <p>Changes to the PID algorithm in ip330PID.cc to improve its
 operation. See the comments in ip330PID.cc for details.</p>
+<p></p>
 
 <h3>Release 1-01 April 20, 2000</h3>
-
 <p>Changed the timing logic. See the discussion in <a
 href="#Restriction">Restrictions on Scan Timing</a>. </p>
+<p></p>
 
 <h3>Release 1-0 November 15, 1999</h3>
-
 <p>This support replaces the previous ip330ScanApp. That support
 did the following: </p>
-
 <ul>
     <li>Digitized channels 0 to 15 in differential mode, or 0 to
         31 in single-ended mode </li>
@@ -228,7 +243,7 @@ settings: </p>
     Suggestions and Comments to: <br>
     <a href="mailto:rivers@cars.uchicago.edu">Mark Rivers </a>:
     (rivers@cars.uchicago.edu) <br>
-    Last modified: August 20, 2003
+    Last modified: March 23, 2005
 </address>
 <p>&nbsp;</p>
 
