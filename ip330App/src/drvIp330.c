@@ -746,9 +746,10 @@ static void intTask(drvIp330Pvt *pPvt)
         while (pnode) {
             asynInt32Interrupt *pint32Interrupt = pnode->drvPvt;
             addr = pint32Interrupt->addr;
-            reason = pint32Interrupt->reason;
+            reason = pint32Interrupt->pasynUser->reason;
             if (reason == ip330Data) {
                 pint32Interrupt->callback(pint32Interrupt->userPvt, 
+                                          pint32Interrupt->pasynUser,
                                           pPvt->correctedData[addr]);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
@@ -761,10 +762,11 @@ static void intTask(drvIp330Pvt *pPvt)
         while (pnode) {
             asynFloat64Interrupt *pfloat64Interrupt = pnode->drvPvt;
             addr = pfloat64Interrupt->addr;
-            reason = pfloat64Interrupt->reason;
+            reason = pfloat64Interrupt->pasynUser->reason;
             if (reason == ip330Data) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt, 
-                                          (double)pPvt->correctedData[addr]);
+                                            pfloat64Interrupt->pasynUser,
+                                            (double)pPvt->correctedData[addr]);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -775,9 +777,10 @@ static void intTask(drvIp330Pvt *pPvt)
         pnode = (interruptNode *)ellFirst(pclientList);
         while (pnode) {
             asynInt32ArrayInterrupt *pint32ArrayInterrupt = pnode->drvPvt;
-            reason = pint32ArrayInterrupt->reason;
+            reason = pint32ArrayInterrupt->pasynUser->reason;
             if (reason == ip330Data) {
                 pint32ArrayInterrupt->callback(pint32ArrayInterrupt->userPvt, 
+                                               pint32ArrayInterrupt->pasynUser,
                                                pPvt->correctedData, 
                                                MAX_IP330_CHANNELS);
             }
@@ -1001,9 +1004,10 @@ finish:
     pnode = (interruptNode *)ellFirst(pclientList);
     while (pnode) {
         pfloat64Interrupt = pnode->drvPvt;
-        reason = pfloat64Interrupt->reason;
+        reason = pfloat64Interrupt->pasynUser->reason;
             if (reason == ip330ScanPeriod) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt,
+                                            pfloat64Interrupt->pasynUser,
                                             pPvt->actualScanPeriod);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
@@ -1090,7 +1094,7 @@ static void report(void *drvPvt, FILE *fp, int details)
             asynInt32Interrupt *pint32Interrupt = pnode->drvPvt;
             fprintf(fp, "    int32 callback client address=%p, addr=%d, reason=%d\n",
                     pint32Interrupt->callback, pint32Interrupt->addr, 
-                    pint32Interrupt->reason);
+                    pint32Interrupt->pasynUser->reason);
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
         pasynManager->interruptEnd(pPvt->int32InterruptPvt);
@@ -1102,7 +1106,7 @@ static void report(void *drvPvt, FILE *fp, int details)
             asynFloat64Interrupt *pfloat64Interrupt = pnode->drvPvt;
             fprintf(fp, "    float64 callback client address=%p, addr=%d, reason=%d\n",
                     pfloat64Interrupt->callback, pfloat64Interrupt->addr, 
-                    pfloat64Interrupt->reason);
+                    pfloat64Interrupt->pasynUser->reason);
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
         pasynManager->interruptEnd(pPvt->float64InterruptPvt);
@@ -1113,7 +1117,8 @@ static void report(void *drvPvt, FILE *fp, int details)
         while (pnode) {
             asynInt32ArrayInterrupt *pint32ArrayInterrupt = pnode->drvPvt;
             fprintf(fp, "    int32Array callback client address=%p, reason=%d\n",
-                    pint32ArrayInterrupt->callback, pint32ArrayInterrupt->reason); 
+                    pint32ArrayInterrupt->callback, 
+                    pint32ArrayInterrupt->pasynUser->reason); 
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
         pasynManager->interruptEnd(pPvt->int32ArrayInterruptPvt);
