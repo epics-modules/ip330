@@ -14,6 +14,8 @@ of this distribution.
     04/20/00 MLR Changed logic for timing, no longer support changing clock
                  rate of Ip330.
     01/16/01 MLR Added check for valid pIp330 in Ip330Scan::init
+    03/31/03 MLR Made time to average be independent for each channel, previously
+                 all channels used the same time. Added some debugging.
 */
 
 #include <vxWorks.h>
@@ -35,13 +37,6 @@ extern "C"
 volatile int Ip330ScanDebug = 0;
 }
 
-class Ip330ScanData
-{
-public:
-    long chanVal;
-    long averageStore;
-};
-
 
 Ip330Scan * Ip330Scan::init(Ip330 *pIp330, int firstChan, int lastChan,
                             int milliSecondsToAverage)
@@ -53,38 +48,45 @@ Ip330Scan * Ip330Scan::init(Ip330 *pIp330, int firstChan, int lastChan,
 
 Ip330Scan:: Ip330Scan(
     Ip330 *pIp330, int firstChan, int lastChan, int milliSecondsToAverage)
-: pIp330(pIp330), firstChan(firstChan), lastChan(lastChan), accumulated(0)
+: pIp330(pIp330), firstChan(firstChan), lastChan(lastChan)
 {
-    chanData = (Ip330ScanData *)calloc(32,sizeof(Ip330ScanData));
+    int chan;
+    chanData = (Ip330ScanData *)calloc(MAX_IP330_CHANNELS,sizeof(Ip330ScanData));
     if(!chanData) {
         printf("Ip330Scan calloc failed\n");
         return;
     }
-    setNumAverage(milliSecondsToAverage);
+    for (chan=0; chan<MAX_IP330_CHANNELS; chan++) {
+       chanData[chan].milliSecondsToAverage = -1;
+       setNumAverage(milliSecondsToAverage, chan);
+    }
     pIp330->registerCallback(callback, (void *)this);
 }
 
 int Ip330Scan::getValue(int channel)
 {
+    DEBUG(5, "Ip330Scan:getValue, chan=%d, chanVal=%ld, accumulated=%d, averageStore=%ld\n",
+                               channel, chanData[channel].chanVal, 
+                               chanData[channel].accumulated, 
+                               chanData[channel].averageStore);
     return( pIp330->correctValue(channel, chanData[channel].chanVal) );
 }
 
 void Ip330Scan:: callback(void *v, int *newData)
 {
-    Ip330Scan        *t = (Ip330Scan *) v;
+    Ip330Scan      *t = (Ip330Scan *) v;
     int             i;
+    Ip330ScanData  *sd;
 
-    t->accumulated++;
     for (i = t->firstChan; i <= t->lastChan; i++) {
-        (t->chanData[i].averageStore) += newData[i];
-        if (t->accumulated == t->numAverage) {
-            t->chanData[i].chanVal =
-                t->chanData[i].averageStore / t->accumulated;
-            t->chanData[i].averageStore = 0;
+        sd = &t->chanData[i];
+        sd->accumulated++;
+        sd->averageStore += newData[i];
+        if (sd->accumulated == sd->numAverage) {
+            sd->chanVal = sd->averageStore / sd->accumulated;
+            sd->averageStore = 0;
+            sd->accumulated = 0;
         }
-    }
-    if(t->accumulated==t->numAverage) {
-       t->accumulated = 0;
     }
 }
 
@@ -95,13 +97,16 @@ int Ip330Scan:: setGain(int gain, int channel)
 }
 
 
-void Ip330Scan:: setNumAverage(int milliSecondsToAverage)
+void Ip330Scan:: setNumAverage(int milliSecondsToAverage, int channel)
 {
-   int i;
-   
-   numAverage = (int) (((1000. * milliSecondsToAverage) / 
+   // If the time is the same as currently set don't do anything
+   if (milliSecondsToAverage == chanData[channel].milliSecondsToAverage) return;
+   DEBUG(1, "Ip330Scan: changed time to average from %d to %d\n", 
+            chanData[channel].milliSecondsToAverage, milliSecondsToAverage);
+   chanData[channel].milliSecondsToAverage = milliSecondsToAverage;
+   chanData[channel].numAverage = (int) (((1000. * milliSecondsToAverage) / 
                                  pIp330->getMicroSecondsPerScan()) + 0.5);
-   for (i = firstChan; i < lastChan; i++) chanData[i].averageStore=0;
-   accumulated = 0;
+   chanData[channel].averageStore = 0;
+   chanData[channel].accumulated = 0;
 }
 
