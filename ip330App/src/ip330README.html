@@ -17,7 +17,7 @@ content="text/html; charset=iso-8859-1">
 Kraimer<br>
 </h2>
 
-<h2 align="center">Release 1.5<br>
+<h2 align="center">Release 1.6<br>
 </h2>
 
 <p>The support for the Ip330 is very general and flexible. It is
@@ -355,7 +355,9 @@ public:
         computing the value returned by <tt>getValue()</tt>. The
         actual number of readings which will be averaged depends
         upon this value and also upon the value of <tt>microSecondsPerScan</tt>
-        specified in the call to <tt>configIp330</tt>. </li>
+        specified in the call to <tt>configIp330</tt>.&nbsp; Note that as of
+      Release 1.6 this is just the initial time for averaging, and is replaced
+      by the actual scan time of each record when the records process. </li>
 </ul>
 
 <h3>Ip330Scan server configuration</h3>
@@ -371,7 +373,10 @@ extern &quot;C&quot; int initIp330Scan(
 #              range firstChan to lastChan specified in initIp330
 # lastChan   = last channel to be used by Ip330Scan.  This must be in the range
 #              firstChan to lastChan specified in initIp330
-# milliSecondsToAverage = number of milliseconds to average readings
+# milliSecondsToAverage = initial number of milliseconds to average readings. This value is
+#              replaced by the actual scan time of the associated ai record when the record 
+#              processes. The actual scan time of the record is sent to the server in the
+#              &quot;extra&quot; field of the message.
 # queueSize  = size of output queue for MPF. Make this the maximum number 
 #              of ai records attached to this server.
 </pre>
@@ -383,6 +388,9 @@ extern &quot;C&quot; int initIp330Scan(
 <ul>
     <li><tt>address</tt> - channel </li>
     <li><tt>value</tt> - gain </li>
+    <li><tt>extra</tt> - scan time of the record on milliseconds for records that are
+      periodically scanned.&nbsp; For records that are not periodically scanned
+      <tt>extra</tt>=0 </li>
 </ul>
 
 <p>Server returns: </p>
@@ -978,6 +986,26 @@ operation. See the comments in ip330PID.cc for details.</p>
   <li>Adjusted mailBoxOffset for uniformSingle and burstSingle scan modes in intFunc.<br>
   </li>
 </ul>
+<h3>Release 1.6 March 31, 2003</h3>
+<ul>
+  <li>                 Changed the way averaging is done in the ip330Scan
+    class.&nbsp; Previously there was a single averaging time for all input
+    channels, that was set at boot time with the milliSecondsToAverage parameter
+    in the call to initIp330Scan().&nbsp; This was not the best way to do it,
+    since if an ai record was set to process every 2 seconds, but
+    milliSecondsToAverage was 100 msec, then the ai record would just be
+    sampling every 20'th average.&nbsp; A much better way to do it is to have
+    the averaging time be equal to the scan time of the record, so that if the
+    scan time is 2 seconds then the averaging is done for 2 seconds, greatly
+    improving signal to noise.&nbsp; This has now been implemented by making the
+    averaging time be independent for each input channel, and passing the scan
+    time in the &quot;extra&quot; field of the message from device support to
+    the server.&nbsp; Note that there is a limitation in the way this is
+    presently implemented:&nbsp; it only works if the &quot;standard&quot; EPICS
+    scan times of 10, 5, 2, 1, .5, .2 and .1 seconds are used.&nbsp; If a site
+    changes these scan times it will not work correctly, because there is no API
+    available to determine the actual scan time of a record.</li>
+</ul>
 <p>&nbsp;</p>
 
 <hr>
@@ -986,7 +1014,7 @@ operation. See the comments in ip330PID.cc for details.</p>
     Suggestions and Comments to: <br>
     <a href="mailto:rivers@cars.uchicago.edu">Mark Rivers </a>:
     (rivers@cars.uchicago.edu) <br>
-    Last modified: January 16, 2001
+    Last modified: April 1, 2003
 </address>
 </body>
 </html>
