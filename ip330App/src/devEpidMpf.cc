@@ -143,6 +143,8 @@ long DevEpidMpf::completeIO(dbCommon* pr,Message* m)
     pepid->dt   = pam->value[offsetSecondsPerScan];
     DEBUG(5,"DevEpidMpf::completeIO, record=%s, cval=%f, err=%f, oval=%f,\n", 
                             pepid->name, pepid->cval, pepid->err, pepid->oval);
+    DEBUG(5,"         p=%f, i=%f, d=%f, dt=%f\n", 
+                            pepid->p, pepid->i, pepid->d, pepid->dt);
     pepid->udf=0;
     delete m;
     return(MPF_OK);
