@@ -5,7 +5,11 @@ include $(TOP)/config/CONFIG_APP
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 
 DBDINSTALL += devAiIp330.dbd
-DBDINSTALL += devEpidIp330.dbd
+DBDINSTALL += devEpidMpf.dbd
+
+INC += Ip330.h
+INC += fastPID.h
+INC += fastSweep.h
 
 include $(TOP)/config/RULES.Host
 #----------------------------------------
