@@ -13,6 +13,11 @@ of this distribution.
     10/27/99  MLR   Converted to use ip330 (base class)
     04/20/00  MLR   Changed private, no longer support changing rate of
                     ip330.
+    03/31/03  MLR   Made time to average be independent for each channel, previously
+                    all channels used the same time.  
+                    Added fields to Ip330ScanData, and moved the definition of that class
+                    into this file from ip330Scan.cc.
+  *
 
 */
 
@@ -21,7 +26,16 @@ of this distribution.
 
 #include "Ip330.h"
 
-class Ip330ScanData;
+class Ip330ScanData
+{
+public:
+    long chanVal;
+    long averageStore;
+    int numAverage;
+    int milliSecondsToAverage;
+    int accumulated;
+};
+
 	
 class Ip330Scan
 {
@@ -30,17 +44,14 @@ public:
     	                    int milliSecondsToAverage);
     int getValue(int channel);
     int setGain(int gain,int channel);
-    void setMilliSecondsToAverage(int milliSeconds);
+    void setNumAverage(int milliSecondsToAverage, int channel);
 private:
     Ip330Scan(Ip330 *pIp330, int firstChan, int lastChan, 
     	int milliSecondsToAverage);
     static void callback(void*, int *data);   // Callback function from Ip330
-    void setNumAverage(int milliSecondsToAverage);
     Ip330 *pIp330;
     int firstChan;
     int lastChan;
-    int numAverage;
-    int accumulated;
     Ip330ScanData *chanData;
 };
 
