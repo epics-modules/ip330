@@ -28,6 +28,7 @@
 #include <epicsExport.h>
 #include <epicsMutex.h>
 #include <asynDriver.h>
+#include <asynUtils.h>
 #include <asynInt32Callback.h>
 
 #include <recGbl.h>
@@ -84,37 +85,28 @@ epicsExportAddress(dset, devLoIp330);
 static long initCommon(dbCommon *pr, DBLINK *plink, recType rt, 
                        userCallback callback, char **up)
 {
-    int i;
-    char port[100];
-    struct vmeio *pio = (struct vmeio *)plink;
+    char *port;
+    int card;
     devIp330Pvt *pPvt;
-    asynUser *pasynUser=NULL;
+    asynUser *pasynUser;
     asynInterface *pasynInterface;
     asynStatus status;
 
-    pPvt = callocMustSucceed(1, sizeof(devIp330Pvt), 
-                             "devIp330::initCommon");
+    pPvt = callocMustSucceed(1, sizeof(devIp330Pvt), "devIp330::initCommon");
     pr->dpvt = pPvt;
     pPvt->recType = rt;
 
-    /* Fetch the port field */
-    if (plink->type != VME_IO) {
-        errlogPrintf("devIp330::initCommon %s link is not VME link\n", 
-                     pr->name);
-        goto bad;
-    }
-    pPvt->channel = pio->signal;
-    /* First field of parm is the port name */
-    for (i=0; pio->parm[i] && pio->parm[i]!=',' && pio->parm[i]!=' '
-                           && i<100; i++)
-       port[i]=pio->parm[i];
-    port[i]='\0';
-
-    *up = &pio->parm[i+1];
     pasynUser = pasynManager->createAsynUser(callback, 0);
     pPvt->pasynUser = pasynUser;
     pasynUser->userPvt = pr;
-    status = pasynManager->connectDevice(pasynUser, port, pio->signal);
+    status = pasynUtils->parseVmeIo(pasynUser, plink, &card, &pPvt->channel, 
+                                    &port, up);
+    if (status != asynSuccess) {
+        errlogPrintf("devIp330::initCommon, error in VME link %s\n", 
+                      pasynUser->errorMessage);
+        goto bad;
+    }
+    status = pasynManager->connectDevice(pasynUser, port, pPvt->channel);
     if (status != asynSuccess) {
         asynPrint(pasynUser, ASYN_TRACE_ERROR,
                   "devIp330::initCommon, error in connectDevice %s\n",
@@ -171,9 +163,10 @@ static long initAi(aiRecord *pai)
         }
     }
     pPvt->mutexId = epicsMutexCreate();
-    pPvt->int32Callback->registerCallback(pPvt->int32CallbackPvt,
-                                          pPvt->pasynUser,
-                                          dataCallbackAi, pPvt);
+    pPvt->int32Callback->registerCallbacks(pPvt->int32CallbackPvt,
+                                           pPvt->pasynUser,
+                                           dataCallbackAi, 0, 
+                                           pPvt);
     pPvt->ip330->setGain(pPvt->ip330Pvt, pPvt->pasynUser, gain);
     convertAi(pai, 1);
     return(0);
