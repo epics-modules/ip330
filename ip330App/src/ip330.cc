@@ -39,6 +39,8 @@ of this distribution.
                  Moved interupt enable to end of config, properly masked mode 
                  control bits in setScanMode, and adjusted mailBoxOffset for 
                  uniformSingle and burstSingle scan modes in intFunc.
+    31-Mar-2003  Mark Rivers
+                 Minor change, changed all hardcoded values of 32 to MAX_IP330_CHANNELS
 */
 
 #include <vxWorks.h>
@@ -99,8 +101,8 @@ public:
     unsigned short missedData[2];
     unsigned short startConvert;
     unsigned char pad[0x0E];
-    unsigned char gain[32];
-    unsigned short mailBox[32];
+    unsigned char gain[MAX_IP330_CHANNELS];
+    unsigned short mailBox[MAX_IP330_CHANNELS];
 };
 
 class ip330ADCSettings
@@ -220,7 +222,7 @@ Ip330:: Ip330(
   firstChan(firstChan), lastChan(lastChan),
   maxClients(maxClients), rebooting(0), numClients(0), mailBoxOffset(16)
 {
-    chanSettings = (ip330ADCSettings *)calloc(32,sizeof(ip330ADCSettings));
+    chanSettings = (ip330ADCSettings *)calloc(MAX_IP330_CHANNELS,sizeof(ip330ADCSettings));
     if(!chanSettings) {
         printf("Ip330 calloc failed\n");
         return;
@@ -468,7 +470,7 @@ int Ip330:: calibrate(int channel)
     unsigned char saveEndChanVal = regs->endChanVal;
     regs->endChanVal = 0x1F;
     regs->startChanVal = 0x00;
-    for (int i = 0; i < 32; i++) regs->gain[i] = chanSettings[channel].gain;
+    for (int i = 0; i < MAX_IP330_CHANNELS; i++) regs->gain[i] = chanSettings[channel].gain;
     regs->control = 0x0402 | (0x0038 & (chanSettings[channel].ctl_callo));
     regs->startConvert = 0x0001;
     waitNewData();
@@ -477,7 +479,7 @@ int Ip330:: calibrate(int channel)
     waitNewData();
     if(Ip330Debug==2) printf("ip330 calibrate. Raw values low\n");
     long sum = 0;
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < MAX_IP330_CHANNELS; i++) {
         unsigned short val = regs->mailBox[i];
         sum = sum + val;
         if(Ip330Debug==2) {
@@ -485,7 +487,7 @@ int Ip330:: calibrate(int channel)
             if((i+1)%8 == 0)printf("\n");
        }
     }
-    double count_callo = ((double)sum)/32.0;
+    double count_callo = ((double)sum)/(double)MAX_IP330_CHANNELS;
     // determine count_calhi
     regs->control = 0x0402 | (0x0038 & (chanSettings[channel].ctl_calhi));
     regs->startConvert = 0x0001;
@@ -495,7 +497,7 @@ int Ip330:: calibrate(int channel)
     waitNewData();
     if(Ip330Debug==2) printf("ip330 calibrate. Raw values high\n");
     sum = 0;
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < MAX_IP330_CHANNELS; i++) {
         unsigned short val = regs->mailBox[i];
         sum = sum + val;
         if(Ip330Debug==2) {
@@ -503,7 +505,7 @@ int Ip330:: calibrate(int channel)
             if((i+1)%8 == 0)printf("\n");
        }
     }
-    double count_calhi = ((double)sum)/32.0;
+    double count_calhi = ((double)sum)/(double)MAX_IP330_CHANNELS;
 
     double m = pgaGain[chanSettings[channel].gain] *
         ((chanSettings[channel].volt_calhi - chanSettings[channel].volt_callo) /
@@ -527,7 +529,7 @@ int Ip330:: calibrate(int channel)
     //Restore pre - calibrate control register state
     regs->startChanVal = saveStartChanVal;
     regs->endChanVal = saveEndChanVal;
-    for (int i = 0; i < 32; i++) regs->gain[i] = chanSettings[i].gain;
+    for (int i = 0; i < MAX_IP330_CHANNELS; i++) regs->gain[i] = chanSettings[i].gain;
     mailBoxOffset=16; /* make it start over*/
     if(!rebooting) pIPM->intEnable(0);
     regs->startConvert = 0x0001;
