@@ -8,9 +8,10 @@
 #       within those definitions.
 #
 # Add your declarations here
-MCA=$(EPICS_SUPPORT_PATH)/mca_5.02
-STD=$(EPICS_SUPPORT_PATH)/std1-1
-DAC128V=$(EPICS_SUPPORT_PATH)/dac128V1-1
+
+include $(EPICS_SUPPORT_PATH)/config/MCA_RELEASE
+include $(EPICS_SUPPORT_PATH)/config/DAC128V_RELEASE
+include $(EPICS_SUPPORT_PATH)/config/STD_RELEASE
 include $(EPICS_SUPPORT_PATH)/config/MPF_RELEASE
 include $(EPICS_SUPPORT_PATH)/config/EPICS_BASE_RELEASE
 
