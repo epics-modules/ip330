@@ -251,30 +251,30 @@ static double setScanPeriod   (void *drvPvt, asynUser *pasynUser,
 static double getScanPeriod   (void *drvPvt, asynUser *pasynUser);
 static double getActualScanPeriod (drvIp330Pvt *pPvt);
      
-static const asynCommon drvIp330Common = {
+static asynCommon drvIp330Common = {
     report,
     connect,
     disconnect
 };
 
-static const asynInt32 drvIp330Int32 = {
+static asynInt32 drvIp330Int32 = {
     writeInt32,
     readInt32,
     getBounds
 };
 
-static const asynFloat64 drvIp330Float64 = {
+static asynFloat64 drvIp330Float64 = {
     writeFloat64,
     readFloat64
 };
 
-static const asynInt32Array drvIp330Int32Array = {
+static asynInt32Array drvIp330Int32Array = {
     NULL,
     NULL,
     NULL,
     NULL
 };
-static const asynDrvUser drvIp330DrvUser = {
+static asynDrvUser drvIp330DrvUser = {
     drvUserCreate,
     drvUserGetType,
     drvUserDestroy
