@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type"
 content="text/html; charset=iso-8859-1">
-<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
 <title>Acromag IP330 ADC Support</title>
 </head>
 
@@ -17,7 +17,7 @@ content="text/html; charset=iso-8859-1">
 Kraimer<br>
 </h2>
 
-<h2 align="center">Release 1.02<br>
+<h2 align="center">Release 1.5<br>
 </h2>
 
 <p>The support for the Ip330 is very general and flexible. It is
@@ -956,6 +956,29 @@ operation. See the comments in ip330PID.cc for details.</p>
     <li>Fixed bugs which caused the IOC to crash if the IP330 hardware was not
         installed but server configuration commands were present in the startup file.
 </ul>
+
+<h3>Release 1.3 August 28, 2001</h3>
+
+<ul>
+    <li>                 Removed calls to intClear and intDisable. These were not necessary and did not work on dumb IP carrier.<br>
+</ul>
+
+<h3>Release 1.4 October 12, 2001</h3>
+
+<ul>
+    <li>Added code to handle soft reboots.<br>
+</ul>
+
+<h3>Release 1.5 July 31, 2002 (Carl Lionberger and Eric Snow at SNS)</h3>
+<ul>
+  <li>                 Moved interrupt enable to end of config.&nbsp; It was
+    generating lots of interrupts before being fully configured.</li>
+  <li>Properly masked mode control bits in setScanMode, was not working in modes
+    other than burstContinuous</li>
+  <li>Adjusted mailBoxOffset for uniformSingle and burstSingle scan modes in intFunc.<br>
+  </li>
+</ul>
+<p>&nbsp;</p>
 
 <hr>
 
