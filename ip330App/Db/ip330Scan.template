@@ -2,7 +2,7 @@ record(ai,"$(P)$(R)")
 {
         field(SCAN,"$(SCAN)")
         field(DTYP,"asyn Int32Average")
-        field(INP,"@$(PORT),$(S)")
+        field(INP,"@asyn($(PORT) $(S))")
         field(LINR,"LINEAR")
         field(EGUF,"$(EGUF)")
         field(EGUL,"$(EGUL)")
