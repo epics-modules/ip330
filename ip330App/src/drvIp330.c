@@ -1042,7 +1042,7 @@ static void report(void *drvPvt, FILE *fp, int details)
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int i;
 
-    fprintf(fp, "Port: %s, carrier %d slots %d, base address=%p\n", 
+    fprintf(fp, "Port: %s, carrier %d slot %d, base address=%p\n", 
             pPvt->portName, pPvt->carrier, pPvt->slot, pPvt->regs);
     if (details >= 1) {
         fprintf(fp, "    messages sent OK=%d; send failed (queue full)=%d\n",
