@@ -59,8 +59,6 @@ of this distribution.
 #include <gpHash.h>
 #include <iocsh.h>
 #include <epicsExport.h>
-#include <epicsTypes.h>
-#include <symTable.h>
 
 #include "Reboot.h"
 #include "Ip330.h"
@@ -87,6 +85,7 @@ extern "C"
 #endif
 volatile int Ip330Debug = 0;
 }
+epicsExportAddress(int, Ip330Debug);
 
 static const int nRanges=4;
 static const int nGains=4;
@@ -680,7 +679,6 @@ static void configCallFunc(const iocshArgBuf *args)
 
 void ip330Register(void)
 {
-    addSymbol("Ip330Debug", (epicsInt32 *)&Ip330Debug, epicsInt32T);
     iocshRegister(&initFuncDef,initCallFunc);
     iocshRegister(&configFuncDef,configCallFunc);
 }

@@ -28,9 +28,7 @@ of this distribution.
 
 #include <epicsThread.h>
 #include <iocsh.h>
-#include <epicsTypes.h>
 #include <epicsExport.h>
-#include "symTable.h"
 
 #include "Message.h"
 #include "Int32Message.h"
@@ -75,6 +73,7 @@ extern "C"
 #endif
 volatile int Ip330ScanDebug = 0;
 }
+epicsExportAddress(int, Ip330ScanDebug);
 
 
 static char taskname[] = "ip330Scan";
@@ -200,7 +199,6 @@ static void scanCallFunc(const iocshArgBuf *args)
 }
 void ip330ScanRegister(void)
 {
-    addSymbol("Ip330ScanDebug", (epicsInt32 *)&Ip330ScanDebug, epicsInt32T);
     iocshRegister(&scanFuncDef,scanCallFunc);
 }
 
