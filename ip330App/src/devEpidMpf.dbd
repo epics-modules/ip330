@@ -1,0 +1,1 @@
+device(epid,VME_IO,devEpidMpf,"MPF EPID")
