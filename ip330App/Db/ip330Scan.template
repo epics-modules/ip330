@@ -1,8 +1,8 @@
 record(ai,"$(P)$(R)")
 {
         field(SCAN,"$(SCAN)")
-        field(DTYP,"ip330Scan")
-        field(INP,"#C$(C) S$(S) @$(SERVER),$(GAIN)")
+        field(DTYP,"Ip330")
+        field(INP,"#C$(C) S$(S) @$(PORT),$(GAIN)")
         field(LINR,"LINEAR")
         field(EGUF,"$(EGUF)")
         field(EGUL,"$(EGUL)")

@@ -1,6 +1,6 @@
 grecord(epid,"$(P)$(PID)") {
-        field(DTYP,"MPF EPID")
-        field(INP,"#C$(C) S0 @$(SERVER)")
+        field(DTYP,"Fast Epid")
+        field(INP,"#C$(C) S0 @$(PORT)")
         field(SCAN,"$(SCAN)")
         field(KP,"$(KP)")
         field(KI,"$(KI)")

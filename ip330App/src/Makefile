@@ -7,17 +7,11 @@ include $(TOP)/configure/CONFIG
 LIBRARY_IOC_vxWorks += ip330
 LIBRARY_IOC_vxWorks += devIp330
 
-ip330_SRCS += ip330.cc
-ip330_SRCS += ip330Scan.cc
-ip330_SRCS += ip330Sweep.cc
-ip330_SRCS += ip330PID.cc
-ip330_SRCS += ip330ConfigServer.cc
+ip330_SRCS += drvIp330.c
+ip330_SRCS += devIp330.c
 
-devIp330_SRCS += devLoIp330Config.cc
-devIp330_SRCS += devAiIp330Scan.cc
-
-INC += Ip330.h
-DBD += devIp330.dbd
+INC += drvIp330.h
+DBD += ip330Support.dbd
 
 ip330_LIBS += $(EPICS_BASE_IOC_LIBS)
 #=============================
