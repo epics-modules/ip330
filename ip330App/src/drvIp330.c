@@ -494,7 +494,8 @@ static int config(drvIp330Pvt *pPvt, scanModeType scan,
     pPvt->intMsgQId = epicsMessageQueueCreate(MAX_MESSAGES, 
                                               MAX_IP330_CHANNELS*sizeof(int));
     if (epicsThreadCreate("Ip330intTask",
-                           epicsThreadPriorityHigh, 10000,
+                           epicsThreadPriorityHigh,
+						   epicsThreadGetStackSize(epicsThreadStackMedium),
                            (EPICSTHREADFUNC)intTask,
                            pPvt) == NULL)
        errlogPrintf("Ip330intTask epicsThreadCreate failure\n");
