@@ -20,7 +20,7 @@ of this distribution.
     24-APR-2003 MLR  Removed above change.  The act of reading the average in
                      ip330Scan now resets the average, so the entire concept of
                      a set time to average for has been eliminated.
-
+    10-JUN-2003 MLR  Converted to R3.14.2
 */
 
 
@@ -29,16 +29,16 @@ of this distribution.
 #include <string.h>
 #include <stdio.h>
 
-extern "C" {
 #include "dbAccess.h"
 #include "dbDefs.h"
 #include "link.h"
 #include "epicsPrint.h"
 #include "dbCommon.h"
+#include "recGbl.h"
+#include "alarm.h"
 #include "aiRecord.h"
 #include "recSup.h"
 #include "dbScan.h"
-}
 
 #include "Message.h"
 #include "Int32Message.h"

@@ -13,17 +13,17 @@
     04/24/03  MLR  Changed logic so that if the sampling period is less than the
                    IP-330 clock period it averages, rather than subsamples.
                    Merged Ip330Sweep.h and ip330SweepServer.cc into this file.
+    06/10/03  MLR  Converted to EPICS R3.14.2
 */
 
-#include <vxWorks.h>
-#include <iv.h>
 #include <stdlib.h>
-#include <sysLib.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 
-#include <tickLib.h>
+#include <epicsTime.h>
+#include <epicsThread.h>
+#include <errlog.h>
 
 #include "Message.h"
 
@@ -53,12 +53,15 @@ extern "C" ip330Sweep *initIp330Sweep(
     ip330Sweep *pIp330Sweep = new ip330Sweep(pIp330, firstChan, lastChan, maxPoints);
     fastSweepServer *pFastSweepServer = 
                      new fastSweepServer(serverName, pIp330Sweep, queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
-        (FUNCPTR)fastSweepServer::fastServer,(int)pFastSweepServer,
-        0,0,0,0,0,0,0,0,0);
-    if(taskId==ERROR)
-        printf("%s fastSweepServer taskSpawn Failure\n",
-            pFastSweepServer->pMessageServer->getName());
+
+    epicsThreadId threadId = epicsThreadCreate(taskname,
+                             epicsThreadPriorityMedium, 10000,
+                             (EPICSTHREADFUNC)fastSweepServer::fastServer,
+                             (void*) pFastSweepServer);
+    if(threadId == NULL)
+        errlogPrintf("%s ip330SweepServer ThreadCreate Failure\n",
+            serverName);
+
     return(pIp330Sweep);
 }
 

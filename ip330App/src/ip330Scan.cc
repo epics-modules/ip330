@@ -21,12 +21,12 @@ of this distribution.
                  Merged Ip330Scan.h and Ip330ScanServer.cc into this file.
 */
 
-#include <vxWorks.h>
-#include <iv.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+
+#include <epicsThread.h>
 
 #include "Message.h"
 #include "Int32Message.h"
@@ -82,12 +82,15 @@ extern "C" int initIp330Scan(Ip330 *pIp330, const char *serverName,
     Ip330ScanServer *pIp330ScanServer = new Ip330ScanServer;
     pIp330ScanServer->pIp330Scan = pIp330Scan;
     pIp330ScanServer->pMessageServer = new MessageServer(serverName,queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
-        (FUNCPTR)Ip330ScanServer::ip330Server,(int)pIp330ScanServer,
-        0,0,0,0,0,0,0,0,0);
-    if(taskId==ERROR)
-        printf("%s ip330Server taskSpawn Failure\n",
-            pIp330ScanServer->pMessageServer->getName());
+
+    epicsThreadId threadId = epicsThreadCreate(taskname,
+                             epicsThreadPriorityMedium, 10000,
+                             (EPICSTHREADFUNC)Ip330ScanServer::ip330Server,
+                             (void*) pIp330ScanServer);
+    if(threadId == NULL)
+        errlogPrintf("%s ip330ScanServer ThreadCreate Failure\n",
+            serverName);
+
     return(0);
 }
 

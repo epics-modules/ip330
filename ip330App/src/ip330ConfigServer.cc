@@ -14,12 +14,13 @@ of this distribution.
 
 */
 
-#include <vxWorks.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 #include <taskLib.h>
+
+#include <epicsThread.h>
 
 #include "Message.h"
 #include "WatchDog.h"
@@ -44,12 +45,14 @@ extern "C" int initIp330Config(
     Ip330ConfigServer *pIp330ConfigServer = new Ip330ConfigServer;
     pIp330ConfigServer->pIp330 = pIp330;
     pIp330ConfigServer->pMessageServer = new MessageServer(serverName,queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
-        (FUNCPTR)Ip330ConfigServer::ip330Server,(int)pIp330ConfigServer,
-        0,0,0,0,0,0,0,0,0);
-    if(taskId==ERROR)
-        printf("%s ip330Server taskSpawn Failure\n",
-            pIp330ConfigServer->pMessageServer->getName());
+
+    epicsThreadId threadId = epicsThreadCreate(taskname,
+                             epicsThreadPriorityMedium, 10000,
+                             (EPICSTHREADFUNC)Ip330ConfigServer::ip330Server,
+                             (void*) pIp330ConfigServer);
+    if(threadId == NULL)
+        errlogPrintf("%s ip330ConfigServer ThreadCreate Failure\n",
+            serverName);
     return(0);
 }
 

@@ -42,6 +42,8 @@ of this distribution.
     31-Mar-2003  Mark Rivers
                  Minor change, changed all hardcoded values of 32 to MAX_IP330_CHANNELS
                  Removed calls to intConfig(), Andrew Johnson says they are not neeced.
+    10-Jun-2003  Mark Rivers
+                 Converted to R3.14.2, mpf-2.2, ipac-2.5
 */
 
 #include <vxWorks.h>
@@ -55,10 +57,11 @@ of this distribution.
 #include <tickLib.h>
 #include <intLib.h>
 
+#include <drvIpac.h>
+
 #include "Reboot.h"
 #include "Ip330.h"
 #include "WatchDog.h"
-#include "IndustryPackModule.h"
 
 
 #define SCAN_DISABLE    0xC8FF  // control register AND mask -
@@ -150,12 +153,12 @@ static callibrationSetting callibrationSettings[nRanges][nGains] = {
 };
 
 extern "C" Ip330 *initIp330(
-    const char *moduleName, const char *carrierName, const char *siteName,
+    const char *serverName, ushort_t carrier, ushort_t slot,
     const char *typeString, const char *rangeString,
     int firstChan, int lastChan,
     int maxClients, int intVec)
 {
-    Ip330 *pIp330 = Ip330::init(moduleName, carrierName, siteName, typeString,
+    Ip330 *pIp330 = Ip330::init(serverName, carrier, slot, typeString,
                                 rangeString, firstChan, lastChan,
                                 maxClients, intVec);
     return pIp330;
@@ -174,16 +177,20 @@ extern "C" int configIp330(
     
 
 Ip330 * Ip330::init(
-    const char *moduleName, const char *carrierName, const char *siteName,
+    const char *serverName, ushort_t carrier, ushort_t slot,
     const char *typeString, const char *rangeString,
     int firstChan, int lastChan,
     int maxClients, int intVec)
 {
-    IndustryPackModule *pIPM = IndustryPackModule::createIndustryPackModule(
-        moduleName,carrierName,siteName);
-    if(!pIPM) return(0);
-    unsigned char manufacturer = pIPM->getManufacturer();
-    unsigned char model = pIPM->getModel();
+    if (ipmCheck(carrier, slot)) {
+       printf("Ip330::init: bad carrier or slot\n");
+       return(0);
+    }
+
+    ipac_idProm_t *id = (ipac_idProm_t *) ipmBaseAddr(carrier, slot, ipac_addrID);
+
+    unsigned char manufacturer = id->manufacturerId & 0xff;
+    unsigned char model = id->modelId & 0xff;
     if(manufacturer!=ACROMAG_ID) {
         printf("initIp330 manufacturer 0x%x not ACROMAG_ID\n",
             manufacturer);
@@ -210,16 +217,16 @@ Ip330 * Ip330::init(
         printf("Illegal range\n");
         return(0);
     }
-    Ip330 *pIp330 = new Ip330(pIPM,type,range,firstChan,lastChan,
+    Ip330 *pIp330 = new Ip330(carrier,slot,type,range,firstChan,lastChan,
                        maxClients, intVec);
     return(pIp330);
 }
 
 Ip330:: Ip330(
-    IndustryPackModule *pIndustryPackModule,
+    ushort_t carrier, ushort_t slot,
     signalType type, int range, int firstChan, int lastChan,
     int maxClients, int intVec)
-: pIPM(pIndustryPackModule), type(type), range(range),
+: carrier(carrier), slot(slot), type(type), range(range),
   firstChan(firstChan), lastChan(lastChan),
   maxClients(maxClients), rebooting(0), numClients(0), mailBoxOffset(16)
 {
@@ -242,7 +249,8 @@ Ip330:: Ip330(
        pFpContext = (FP_CONTEXT *)calloc(1, sizeof(FP_CONTEXT));
     else
        pFpContext = NULL;
-    regs = (ip330ADCregs *) pIPM->getMemBaseIO();
+ 
+    regs = (ip330ADCregs *) ipmBaseAddr(carrier, slot, ipac_addrIO);;
     wdId = new WatchDog;
     lock = semMCreate(SEM_Q_FIFO);
     regs->startConvert = 0x0000;
@@ -423,7 +431,7 @@ void Ip330:: intFunc(void *v)
        t->clientCallback[i]( t->clientPvt[i], t->chanData);
     }
     if (t->pFpContext != NULL) fppRestore(t->pFpContext);
-    if(!t->rebooting) t->pIPM->intEnable(0);
+    if(!t->rebooting) ipmIrqCmd(t->carrier, t->slot, 0, ipac_irqEnable);
 }
 
 
@@ -531,7 +539,7 @@ int Ip330:: calibrate(int channel)
     regs->endChanVal = saveEndChanVal;
     for (int i = 0; i < MAX_IP330_CHANNELS; i++) regs->gain[i] = chanSettings[i].gain;
     mailBoxOffset=16; /* make it start over*/
-    if(!rebooting) pIPM->intEnable(0);
+    if(!rebooting) ipmIrqCmd(carrier, slot, 0, ipac_irqEnable);
     regs->startConvert = 0x0001;
     return (0);
 }

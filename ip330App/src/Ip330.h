@@ -25,7 +25,6 @@ of this distribution.
 
 class WatchDog;
 class MessageServer;
-class IndustryPackModule;
 class ip330ADCregs;
 class ip330ADCSettings;
 
@@ -41,7 +40,7 @@ class Ip330
 {
 public:
     static Ip330 * init(
-        const char *moduleName, const char *carrierName, const char *siteName,
+        const char *serverName, ushort_t carrier, ushort_t slot,
         const char *type, const char *range, int firstChan, int lastChan,
         int maxClients, int intVec);
     int config(scanModeType scanMode, const char *triggerString, int
@@ -57,7 +56,7 @@ public:
     void setSecondsBetweenCalibrate(int seconds);
     int registerCallback(Ip330Callback callback, void *pvt);
 private:
-    Ip330(IndustryPackModule *pIndustryPackModule,
+    Ip330(ushort_t carrier, ushort_t slot,
              signalType type, int range, int firstChan, int lastChan,
              int maxClients, int intVec);
     int setGain(int range, int gain, int channel);
@@ -68,7 +67,8 @@ private:
     int calibrate(int channel);
     void waitNewData();
     static void autoCalibrate(void *);
-    IndustryPackModule *pIPM;
+    ushort_t carrier;
+    ushort_t slot;
     WatchDog *wdId;
     SEM_ID lock;
     FP_CONTEXT *pFpContext;

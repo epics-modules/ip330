@@ -12,12 +12,10 @@
                    averages readings rather than just ignorring intervening readings. 
 */
 
-#include <vxWorks.h>
-#include <iv.h>
-#include <tickLib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <epicsThread.h>
 #include "Message.h"
 
 #include "fastPID.h"
@@ -47,20 +45,23 @@ private:
 // These C functions are provided so that we can create and configure the
 // fastPID object from the vxWorks command line, which does not understand C++ syntax.
 static char taskname[] = "ip330PID";
-extern "C" Ip330PID *initIp330PID(const char *serverName, 
+extern "C" int initIp330PID(const char *serverName, 
          Ip330 *pIp330, int ADCChannel, DAC128V *pDAC128V, int DACChannel,
          int queueSize)
 {
     Ip330PID *pIp330PID = new Ip330PID(pIp330, ADCChannel, pDAC128V, DACChannel);
     fastPIDServer *pFastPIDServer = 
                           new fastPIDServer(serverName, pIp330PID, queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
-        (FUNCPTR)fastPIDServer::fastServer,(int)pFastPIDServer,
-        0,0,0,0,0,0,0,0,0);
-    if (taskId==ERROR)
-        printf("%s fastPIDServer taskSpawn Failure\n",
-            pFastPIDServer->pMessageServer->getName());
-    return(pIp330PID);
+
+    epicsThreadId threadId = epicsThreadCreate(taskname,
+                             epicsThreadPriorityMedium, 10000,
+                             (EPICSTHREADFUNC)fastPIDServer::fastServer,
+                             (void*) pFastPIDServer);
+    if(threadId == NULL)
+       errlogPrintf("%s ip330PIDServer ThreadCreate Failure\n",
+            serverName);
+
+    return(0);
 }
 
 Ip330PID::Ip330PID(Ip330 *pIp330, int ADCChannel, DAC128V *pDAC128V, int DACChannel)

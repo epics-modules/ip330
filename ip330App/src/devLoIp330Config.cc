@@ -20,15 +20,15 @@ of this distribution.
 #include <string.h>
 #include <stdio.h>
  
-extern "C" {
 #include "dbAccess.h"
 #include "dbDefs.h"
 #include "link.h"
 #include "epicsPrint.h"
 #include "dbCommon.h"
+#include "recGbl.h"
+#include "alarm.h"
 #include "longoutRecord.h"
 #include "recSup.h"
-}
 
 #include "Message.h"
 #include "Int32Message.h"
