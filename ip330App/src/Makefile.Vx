@@ -1,0 +1,34 @@
+# Makefile.Vx
+TOP = ../../..
+include $(TOP)/config/CONFIG_APP
+
+# Comment out the following 2 lines if epidRecord is not used
+SRCS.cc += ../devEpidIp330.cc
+PROD += devEpidIp330.o 
+
+SRCS.cc += ../devLoIp330Config.cc
+PROD += devLoIp330Config.o 
+
+SRCS.cc += ../devAiIp330Scan.cc
+PROD += devAiIp330Scan.o 
+
+IP330SRCS.cc = ../ip330.cc
+IP330SRCS.cc += ../ip330Scan.cc
+IP330SRCS.cc += ../ip330Sweep.cc
+IP330SRCS.cc += ../ip330PID.cc
+IP330LIBOBJS = $(IP330SRCS.cc:../%.cc=%.o)
+ip330Lib: $(IP330LIBOBJS)
+	$(LINK.c) $@ $(IP330LIBOBJS)
+PROD += ip330Lib
+
+SERVERSRCS.cc = ../ip330ScanServer.cc
+SERVERSRCS.cc += ../ip330ConfigServer.cc
+SERVERSRCS.cc += ../ip330SweepServer.cc
+SERVERSRCS.cc += ../ip330PIDServer.cc
+IP330SERVLIBOBJS = $(SERVERSRCS.cc:../%.cc=%.o)
+ip330ServLib: $(IP330SERVLIBOBJS)
+	$(LINK.c) $@ $(IP330SERVLIBOBJS)
+PROD += ip330ServLib
+
+include $(TOP)/config/RULES.Vx
+
