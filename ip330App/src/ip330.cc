@@ -31,6 +31,9 @@ of this distribution.
                  Moved statement loading interrupt vector.  This fixes a bug which
                  crashed the IOC if an external trigger is active when the ioc is
                  booted via a power cycle.
+    28-Aug-2001  Mark Rivers per Marty Kraimer
+                 Removed calls to intClear and intDisable.  These were not necessary
+                 and did not work on dumb IP carrier.
 */
 
 #include <vxWorks.h>
@@ -240,8 +243,6 @@ Ip330:: Ip330(
         printf("Ip330 intConnect Failure\n");
     }
     Reboot::rebootHookAdd(rebootCallback,(void *)this);
-    pIPM->intDisable(0);
-    pIPM->intClear(0);
     /* Program chip registers */
     regs->control = 0x0000;
     regs->control |= 0x0002; /* Output Data Format = Straight Binary */
@@ -383,8 +384,6 @@ void Ip330:: intFunc(void *v)
     Ip330 *t = (Ip330 *) v;
     int    i;
 
-    t->pIPM->intDisable(0);
-    t->pIPM->intClear(0);
     // Save and restore FP registers so application interrupt functions can do
     // floating point operations.  Skip if no fpp hardware present.
     if (t->pFpContext != NULL) fppSave (t->pFpContext);
@@ -442,8 +441,6 @@ int Ip330:: calibrate(int channel)
     unsigned short saveControl = regs->control;
     regs->control &= SCAN_DISABLE;
     /* Disable scan mode and interrupts */
-    pIPM->intDisable(0);
-    pIPM->intClear(0);
     // determine count_callo
     unsigned char saveStartChanVal = regs->startChanVal;
     unsigned char saveEndChanVal = regs->endChanVal;
@@ -519,7 +516,6 @@ void Ip330:: rebootCallback(void *v)
 {
     Ip330 *pIp330 = (Ip330 *)v;
     pIp330->rebooting = true;
-    pIp330->pIPM->intDisable(0); pIp330->pIPM->intDisable(1);
 }
 
 float Ip330:: setMicroSecondsPerScan(float microSecondsPerScan)
