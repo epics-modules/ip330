@@ -1,10 +1,5 @@
 //ip330Sweep.cc
 
-/********************COPYRIGHT NOTIFICATION**********************************
-This software was developed under a United States Government license
-described on the COPYRIGHT_UniversityOfChicago file included as part
-of this distribution.
-****************************************************************************/
 /*
     Author: Mark Rivers
     10/27/99
@@ -13,7 +8,11 @@ of this distribution.
                    just change whether the callback is executed when called.
     09/04/00  MLR  Changed presetTime to liveTime and realTime for
                    compatibility with devMcaMpf.
-    01/16/01 MLR Added check for valid pIp330 in Ip330Sweep::init
+    01/16/01  MLR  Added check for valid pIp330 in ip330Sweep::init
+    04/09/03  MLR  Converted to base class fastSweep, and this derived class.
+    04/24/03  MLR  Changed logic so that if the sampling period is less than the
+                   IP-330 clock period it averages, rather than subsamples.
+                   Merged Ip330Sweep.h and ip330SweepServer.cc into this file.
 */
 
 #include <vxWorks.h>
@@ -26,153 +25,82 @@ of this distribution.
 
 #include <tickLib.h>
 
-#include "Ip330Sweep.h"
+#include "Message.h"
 
-extern "C"
+#include "fastSweep.h"
+#include "Ip330.h"
+
+class ip330Sweep : public fastSweep
 {
-#ifdef NODEBUG
-#define DEBUG(l,f,v) ;
-#else
-#define DEBUG(l,f,v...) { if(l<Ip330SweepDebug) printf(f,## v); }
-#endif
-volatile int Ip330SweepDebug = 0;
-}
+public:
+    ip330Sweep(Ip330 *pIp330, int firstChan, int lastChan, int maxPoints);
+    double setMicroSecondsPerPoint(double microSeconds);
+    double getMicroSecondsPerPoint();
+private:
+    static void callback(void*, int *data);   // Callback function from Ip330
+    Ip330 *pIp330;
+    int numAverage;
+    int average[MAX_IP330_CHANNELS];
+    int accumulated;
+};
 
-
-
-Ip330Sweep * Ip330Sweep::init(Ip330 *pIp330, int firstChan, int lastChan,
-                            int maxPoints)
+// This C function is needed because we call it from the vxWorks shell
+static char taskname[] = "ip330Sweep";
+extern "C" ip330Sweep *initIp330Sweep(
+    Ip330 *pIp330, const char *serverName, int firstChan, int lastChan,
+    int maxPoints, int queueSize)
 {
-    if (!pIp330) return(0);
-    Ip330Sweep *pIp330Sweep = new Ip330Sweep(pIp330,firstChan,lastChan,
-                                             maxPoints);
+    ip330Sweep *pIp330Sweep = new ip330Sweep(pIp330, firstChan, lastChan, maxPoints);
+    fastSweepServer *pFastSweepServer = 
+                     new fastSweepServer(serverName, pIp330Sweep, queueSize);
+    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
+        (FUNCPTR)fastSweepServer::fastServer,(int)pFastSweepServer,
+        0,0,0,0,0,0,0,0,0);
+    if(taskId==ERROR)
+        printf("%s fastSweepServer taskSpawn Failure\n",
+            pFastSweepServer->pMessageServer->getName());
     return(pIp330Sweep);
 }
 
-Ip330Sweep:: Ip330Sweep(
-    Ip330 *pIp330, int firstChan, int lastChan, int maxPoints)
-: pIp330(pIp330), firstChan(firstChan), lastChan(lastChan),
-  acquiring(0), numAcquired(0), maxPoints(maxPoints), 
-  elapsedTime(0), startTime(0), 
-  numChans(lastChan - firstChan + 1), numPoints(maxPoints)
+ip330Sweep::ip330Sweep(Ip330 *pIp330, int firstChan, int lastChan, int maxPoints) :
+            fastSweep(firstChan, lastChan, maxPoints), pIp330(pIp330), 
+            accumulated(0)
 {
-    DEBUG(1, "Ip330Sweep:Ip330Sweep, maxPoints=%d, numChans=%d\n", 
-      maxPoints, numChans);
-    pData = (int *)calloc(maxPoints*numChans,sizeof(int));
-    if(!pData) {
-        printf("Ip330Sweep calloc failed\n");
-        return;
-    }
+    int i;
+    for (i=0; i<MAX_IP330_CHANNELS; i++) average[i]=0;
     pIp330->registerCallback(callback, (void *)this);
 }
 
-void Ip330Sweep::getData(int channel, int *data)
+void ip330Sweep::callback(void *v, int *newData)
 {
-    memcpy(data, &pData[maxPoints*(channel-firstChan)], numPoints*sizeof(int));
-}
-
-void Ip330Sweep:: callback(void *v, int *newData)
-{
-    Ip330Sweep *t = (Ip330Sweep *) v;
+    ip330Sweep *t = (ip330Sweep *) v;
     int i;
 
-    if (++t->skip <= t->numSkip) return;
-    t->skip = 0;
-    
-    if (t->numAcquired >= t->numPoints) {
-       t->acquiring = 0;
+    // No need to average if collecting every point
+    if (t->numAverage == 1) {
+       t->nextPoint(newData);
+       return;
     }
-    if (!t->acquiring) return;
-    
-    int offset = t->numAcquired;
-    for (i = 0; i < (t->numChans); i++) {
-        t->pData[offset] = newData[t->firstChan + i];
-        offset += t->maxPoints;
-    }
-    t->numAcquired++;
-    t->elapsedTime = tickGet() - t->startTime;
-    if ((t->realTime > 0) && (t->elapsedTime >= t->realTime))
-            t->acquiring = 0;
-    if ((t->liveTime > 0) && (t->elapsedTime >= t->liveTime))
-            t->acquiring = 0;
+    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] += newData[i];
+    if (++t->accumulated < t->numAverage) return;
+    // We have now collected the desired number of points to average
+    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] /= t->accumulated;
+    t->nextPoint(t->average);
+    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] = 0;
+    t->accumulated = 0;
 }
 
-int Ip330Sweep:: setGain(int gain, int channel)
+double ip330Sweep::setMicroSecondsPerPoint(double microSeconds)
 {
-    pIp330->setGain(gain, channel);
-    return(0);
-}
-
-void Ip330Sweep:: erase()
-{
-    memset(pData, 0, maxPoints*numChans*sizeof(int));
-    numAcquired = 0;
-    /* Reset the elapsed time */
-    elapsedTime = 0;
-    startTime = tickGet();
-}   
-
-void Ip330Sweep:: startAcquire()
-{
-    if (!acquiring) {
-       acquiring = 1;
-       startTime = tickGet();
-    }
-}   
-
-void Ip330Sweep:: stopAcquire()
-{
-    acquiring = 0;
-}   
-
-int Ip330Sweep:: setNumPoints(int n)
-{
-    if ((n < 1) || (n > maxPoints)) return(-1);
-    numPoints = n;
-    return(0);
-}   
-
-int Ip330Sweep:: getNumPoints()
-{
-    return(numPoints);
-}   
-
-int Ip330Sweep:: setRealTime(float time)
-{
-    // "time" is in seconds, convert to clock ticks
-    realTime = (int) (time*sysClkRateGet() + 0.5);
-    return(0);
-}   
-
-int Ip330Sweep:: setLiveTime(float time)
-{
-    // "time" is in seconds, convert to clock ticks
-    liveTime = (int) (time*sysClkRateGet() + 0.5);
-    return(0);
-}   
-
-float Ip330Sweep:: getElapsedTime()
-{
-    // Return elapsed time in seconds, convert from clock ticks
-    return( (float)elapsedTime / (float)sysClkRateGet());
-}
-
-int Ip330Sweep:: getStatus()
-{
-    return(acquiring);
-}
-
-float Ip330Sweep:: setMicroSecondsPerPoint(float microSeconds)
-{
-    numSkip = (int) (microSeconds /
-                        pIp330->getMicroSecondsPerScan() + 0.5) - 1;
-    if (numSkip < 0) numSkip = 0;
-    skip = 0;
+    numAverage = (int) (microSeconds /
+                        pIp330->getMicroSecondsPerScan() + 0.5);
+    if (numAverage < 1) numAverage = 1;
+    accumulated = 0;
     return getMicroSecondsPerPoint();
 }   
 
-float Ip330Sweep:: getMicroSecondsPerPoint()
+double ip330Sweep::getMicroSecondsPerPoint()
 {
     // Return dwell time in microseconds
-    return(pIp330->getMicroSecondsPerScan() * (numSkip+1));
+    return(pIp330->getMicroSecondsPerScan() * (numAverage));
 }
