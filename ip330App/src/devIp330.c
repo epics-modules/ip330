@@ -28,7 +28,7 @@
 #include <epicsExport.h>
 #include <epicsMutex.h>
 #include <asynDriver.h>
-#include <asynUtils.h>
+#include <asynEpicsUtils.h>
 #include <asynInt32Callback.h>
 
 #include <recGbl.h>
@@ -86,7 +86,6 @@ static long initCommon(dbCommon *pr, DBLINK *plink, recType rt,
                        userCallback callback, char **up)
 {
     char *port;
-    int card;
     devIp330Pvt *pPvt;
     asynUser *pasynUser;
     asynInterface *pasynInterface;
@@ -99,8 +98,8 @@ static long initCommon(dbCommon *pr, DBLINK *plink, recType rt,
     pasynUser = pasynManager->createAsynUser(callback, 0);
     pPvt->pasynUser = pasynUser;
     pasynUser->userPvt = pr;
-    status = pasynUtils->parseVmeIo(pasynUser, plink, &card, &pPvt->channel, 
-                                    &port, up);
+    status = pasynEpicsUtils->parseLink(pasynUser, plink, 
+                                        &port, &pPvt->channel, up);
     if (status != asynSuccess) {
         errlogPrintf("devIp330::initCommon, error in VME link %s\n", 
                       pasynUser->errorMessage);
