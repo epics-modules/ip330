@@ -60,7 +60,7 @@ of this distribution.
 #include <iocsh.h>
 #include <epicsExport.h>
 #include <epicsThread.h>
-#include <epicsEvent.h>
+#include <epicsMessageQueue.h>
 
 #include "Reboot.h"
 #include "Ip330.h"
@@ -77,6 +77,9 @@ of this distribution.
 #define TRIGGER_DIRECTION input
 #define MICROSECONDS_PER_SCAN 1000
 #define SECONDS_BETWEEN_CALIBRATE 0
+
+// Message queue size
+#define MAX_MESSAGES 100
 
 extern "C"
 {
@@ -316,7 +319,7 @@ int Ip330:: config(scanModeType scan, const char *triggerString,
     setSecondsBetweenCalibrate(secondsCalibrate);
     autoCalibrate((void *)this);
     regs->control |= 0x2000; /* = Interrupt After All Selected */
-    intEvent = new epicsEvent(epicsEventEmpty);
+    intMsgQ = new epicsMessageQueue(MAX_MESSAGES, MAX_IP330_CHANNELS*sizeof(int));
     if (epicsThreadCreate("Ip330intTask",
                            epicsThreadPriorityHigh, 10000,
                            (EPICSTHREADFUNC)Ip330::intTask,
@@ -432,6 +435,7 @@ void Ip330:: intFunc(void *v)
 {
     Ip330 *t = (Ip330 *) v;
     int i;
+    int data[MAX_IP330_CHANNELS];
 
     if (t->type == differential) {
        // Must alternate between reading data from mailBox[i] and mailBox[i+16]
@@ -444,20 +448,24 @@ void Ip330:: intFunc(void *v)
           t->mailBoxOffset = 16;
     }
     for (i = t->firstChan; i <= t->lastChan; i++) {
-        t->chanData[i] = (t->regs->mailBox[i + t->mailBoxOffset]);
+        data[i] = (t->regs->mailBox[i + t->mailBoxOffset]);
     }
     // Wake up task which calls callback routines
-    t->intEvent->signal();
+    t->intMsgQ->trySend(data, sizeof(data));
     if(!t->rebooting) ipmIrqCmd(t->carrier, t->slot, 0, ipac_irqEnable);
 }
 
 void Ip330:: intTask(Ip330 *t)
 {
     int    i;
+    int data[MAX_IP330_CHANNELS];
 
     while(1) {
        // Wait for event from interrupt routine
-       t->intEvent->wait();
+       t->intMsgQ->receive(data, sizeof(data));
+       for (i = t->firstChan; i <= t->lastChan; i++) {
+           t->chanData[i] = data[i];
+       }
        // Call the callback routines which have registered
        for (i = 0; i < t->numClients; i++) {
           t->clientCallback[i]( t->clientPvt[i], t->chanData);

@@ -23,6 +23,7 @@
 
 #include <epicsTime.h>
 #include <epicsThread.h>
+#include <epicsMessageQueue.h>
 #include <iocsh.h>
 #include <epicsExport.h>
 #include <errlog.h>

@@ -21,6 +21,7 @@ of this distribution.
 #include <taskLib.h>
 
 #include <epicsThread.h>
+#include <epicsMessageQueue.h>
 #include <iocsh.h>
 #include <epicsExport.h>
 

@@ -29,6 +29,7 @@ of this distribution.
 #include <epicsThread.h>
 #include <iocsh.h>
 #include <epicsExport.h>
+#include <epicsMessageQueue.h>
 
 #include "Message.h"
 #include "Int32Message.h"

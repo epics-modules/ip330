@@ -86,7 +86,7 @@ private:
     bool rebooting;
     int numClients;
     int mailBoxOffset;
-    epicsEvent *intEvent;
+    epicsMessageQueue *intMsgQ;
     float actualMicroSecondsPerScan;
     void **clientPvt;
     Ip330Callback *clientCallback;

@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include <epicsThread.h>
+#include <epicsMessageQueue.h>
 #include <iocsh.h>
 #include <epicsExport.h>
 #include "Message.h"
