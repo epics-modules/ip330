@@ -11,6 +11,9 @@ of this distribution.
     Current Authors: Mark Rivers, Joe Sullivan, and Marty Kraimer
     Converted to MPF: 12/9/98
     Converted to use Ip330 class: 10/27/99
+    21-Mar-2003  MLR  Added support for changing averaging time for each
+                      channel, via milliseconds to average being passed
+                      in the "extra" field of each message.
 
 */
 
@@ -72,8 +75,12 @@ void Ip330ScanServer::ip330Server(Ip330ScanServer *pIp330ScanServer)
                 pmessage->status = 0;
                 int gain = pmessage->value;
                 int channel = pmessage->address;
-                if(pIp330Scan->setGain( gain,channel)) pmessage->status= -1;
-                if(pmessage->status==0) {
+                int msec = pmessage->extra;
+                if (msec > 0) {
+                   pIp330Scan->setNumAverage(msec,channel);
+                }
+                if (pIp330Scan->setGain(gain,channel)) pmessage->status= -1;
+                if (pmessage->status==0) {
                     pmessage->value = (int32)pIp330Scan->getValue(channel);
                 }
                 pMessageServer->reply(pmessage);
