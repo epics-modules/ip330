@@ -1,7 +1,7 @@
 
 file {
-	name="i:\epics\R3.13.1\CARS\CARSApp\op\adl\pid_control.adl"
-	version=020306
+	name="/home/epics/support/ip3301-3/ip330App/adl/./pid_control.adl"
+	version=030000
 }
 display {
 	object {
@@ -274,6 +274,11 @@ text {
 		label="PID limits"
 		name="userTransform_full.adl"
 		args="P=$(P), T=$(PID)_limits"
+	}
+	display[4] {
+		label="PID input"
+		name="userTransform_full.adl"
+		args="P=$(P), T=$(PID)_incalc"
 	}
 	clr=14
 	bclr=4
