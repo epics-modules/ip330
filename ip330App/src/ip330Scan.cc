@@ -27,6 +27,8 @@ of this distribution.
 #include <stdio.h>
 
 #include <epicsThread.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 
 #include "Message.h"
 #include "Int32Message.h"
@@ -74,10 +76,14 @@ volatile int Ip330ScanDebug = 0;
 
 
 static char taskname[] = "ip330Scan";
-extern "C" int initIp330Scan(Ip330 *pIp330, const char *serverName, 
+extern "C" int initIp330Scan(const char *ip330Name, const char *serverName, 
                              int firstChan, int lastChan, int queueSize)
 {
-    if (!pIp330) return(0);
+    Ip330 *pIp330 = Ip330::findModule(ip330Name);
+    if (pIp330 == NULL) {
+       printf("initIp330Scan: cannot find IP330 module %s\n", ip330Name);
+       return(-1);
+    }
     Ip330Scan *pIp330Scan = new Ip330Scan(pIp330, firstChan, lastChan);
     Ip330ScanServer *pIp330ScanServer = new Ip330ScanServer;
     pIp330ScanServer->pIp330Scan = pIp330Scan;
@@ -173,3 +179,26 @@ void Ip330ScanServer::ip330Server(Ip330ScanServer *pIp330ScanServer)
        }
     }
 }
+
+static const iocshArg scanArg0 = { "ip330Name",iocshArgString};
+static const iocshArg scanArg1 = { "serverName",iocshArgString};
+static const iocshArg scanArg2 = { "firstChan",iocshArgInt};
+static const iocshArg scanArg3 = { "lastChan",iocshArgInt};
+static const iocshArg scanArg4 = { "queueSize",iocshArgInt};
+static const iocshArg * scanArgs[5] = {&scanArg0,
+                                       &scanArg1,
+                                       &scanArg2,
+                                       &scanArg3,
+                                       &scanArg4};
+static const iocshFuncDef scanFuncDef = {"initIp330Scan",5,scanArgs};
+static void scanCallFunc(const iocshArgBuf *args)
+{
+    initIp330Scan(args[0].sval, args[1].sval, (int) args[2].sval,
+                  (int) args[3].sval, (int) args[4].sval);
+}
+void ip330ScanRegister(void)
+{
+    iocshRegister(&scanFuncDef,scanCallFunc);
+}
+
+epicsExportRegistrar(ip330ScanRegister);

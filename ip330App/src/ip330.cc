@@ -49,15 +49,16 @@ of this distribution.
 #include <vxWorks.h>
 #include <iv.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 
 #include <taskLib.h>
-#include <tickLib.h>
 #include <intLib.h>
 
 #include <drvIpac.h>
+#include <gpHash.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 
 #include "Reboot.h"
 #include "Ip330.h"
@@ -91,6 +92,8 @@ static const int nTriggers=2;
 static const char *rangeName[nRanges] = {"-5to5","-10to10","0to5","0to10"};
 static const char *triggerName[nTriggers] = {"Input", "Output"};
 static const double pgaGain[nGains] = {1.0,2.0,4.0,8.0};
+
+static void *ip330Hash;
 
 class ip330ADCregs
 {
@@ -152,7 +155,7 @@ static callibrationSetting callibrationSettings[nRanges][nGains] = {
         {0.6125, 1.2250,  0x30,  0x28, 10.0,   0.0} }
 };
 
-extern "C" Ip330 *initIp330(
+extern "C" int initIp330(
     const char *serverName, ushort_t carrier, ushort_t slot,
     const char *typeString, const char *rangeString,
     int firstChan, int lastChan,
@@ -161,14 +164,16 @@ extern "C" Ip330 *initIp330(
     Ip330 *pIp330 = Ip330::init(serverName, carrier, slot, typeString,
                                 rangeString, firstChan, lastChan,
                                 maxClients, intVec);
-    return pIp330;
+    if (pIp330 == NULL) return(-1);
+    return 0;
 }
 
 extern "C" int configIp330(
-    Ip330 *pIp330, 
+    const char *serverName, 
     scanModeType scanMode, const char *triggerString,
     int microSecondsPerScan, int secondsBetweenCalibrate)
 {
+    Ip330 *pIp330 = Ip330::findModule(serverName);
     if (pIp330 == NULL) return(-1);
     pIp330->config(scanMode, triggerString, microSecondsPerScan,
                    secondsBetweenCalibrate);
@@ -219,7 +224,17 @@ Ip330 * Ip330::init(
     }
     Ip330 *pIp330 = new Ip330(carrier,slot,type,range,firstChan,lastChan,
                        maxClients, intVec);
+    if (ip330Hash == NULL) gphInitPvt(&ip330Hash, 256);
+    GPHENTRY *hashEntry = gphAdd(ip330Hash, serverName, NULL);
+    hashEntry->userPvt = pIp330;
     return(pIp330);
+}
+
+Ip330* Ip330::findModule(const char *name)
+{
+    GPHENTRY *hashEntry = gphFind(ip330Hash, name, NULL);
+    if (hashEntry == NULL) return (NULL);
+    return((Ip330 *)hashEntry->userPvt);
 }
 
 Ip330:: Ip330(
@@ -615,3 +630,54 @@ finish:
        timePrescale, timeConvert, actualMicroSecondsPerScan);
     if (status == 0) return(actualMicroSecondsPerScan); else return(-1.);
 }
+
+static const iocshArg initArg0 = { "ip330Name",iocshArgString};
+static const iocshArg initArg1 = { "Carrier",iocshArgInt};
+static const iocshArg initArg2 = { "Slot",iocshArgInt};
+static const iocshArg initArg3 = { "typeString",iocshArgString};
+static const iocshArg initArg4 = { "rangeString",iocshArgString};
+static const iocshArg initArg5 = { "firstChan",iocshArgInt};
+static const iocshArg initArg6 = { "lastChan",iocshArgString};
+static const iocshArg initArg7 = { "maxClients",iocshArgInt};
+static const iocshArg initArg8 = { "intVec",iocshArgInt};
+static const iocshArg * const initArgs[9] = {&initArg0,
+                                             &initArg1,
+                                             &initArg2,
+                                             &initArg3,
+                                             &initArg4,
+                                             &initArg5,
+                                             &initArg6,
+                                             &initArg7,
+                                             &initArg8};
+static const iocshFuncDef initFuncDef = {"initIp330",9,initArgs};
+static void initCallFunc(const iocshArgBuf *args)
+{
+    initIp330(args[0].sval, (int) args[1].sval, (int) args[2].sval,
+              args[3].sval, args[4].sval, (int) args[5].sval,
+              (int) args[6].sval, (int) args[7].sval, (int) args[8].sval);
+}
+
+static const iocshArg configArg0 = { "ip330Name",iocshArgString};
+static const iocshArg configArg1 = { "scanMode",iocshArgInt};
+static const iocshArg configArg2 = { "triggerString",iocshArgString};
+static const iocshArg configArg3 = { "microSecondsPerScan",iocshArgInt};
+static const iocshArg configArg4 = { "secondsBetweenCalibrate",iocshArgInt};
+static const iocshArg * configArgs[5] = {&configArg0,
+                                         &configArg1,
+                                         &configArg2,
+                                         &configArg3,
+                                         &configArg4};
+static const iocshFuncDef configFuncDef = {"configIp330",9,configArgs};
+static void configCallFunc(const iocshArgBuf *args)
+{
+    configIp330(args[0].sval, (scanModeType)(int) args[1].sval, args[2].sval,
+                (int) args[3].sval, (int) args[4].sval);
+}
+
+void ip330Register(void)
+{
+    iocshRegister(&initFuncDef,initCallFunc);
+    iocshRegister(&configFuncDef,configCallFunc);
+}
+
+epicsExportRegistrar(ip330Register);

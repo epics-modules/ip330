@@ -43,6 +43,7 @@ public:
         const char *serverName, ushort_t carrier, ushort_t slot,
         const char *type, const char *range, int firstChan, int lastChan,
         int maxClients, int intVec);
+    static Ip330 *findModule(const char *name);
     int config(scanModeType scanMode, const char *triggerString, int
     	microSecondsPerScan, int secondsBetweenCalibrate);
     int getCorrectedValue(int channel);

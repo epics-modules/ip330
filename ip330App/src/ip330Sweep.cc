@@ -23,6 +23,8 @@
 
 #include <epicsTime.h>
 #include <epicsThread.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 #include <errlog.h>
 
 #include "Message.h"
@@ -46,10 +48,15 @@ private:
 
 // This C function is needed because we call it from the vxWorks shell
 static char taskname[] = "ip330Sweep";
-extern "C" ip330Sweep *initIp330Sweep(
-    Ip330 *pIp330, const char *serverName, int firstChan, int lastChan,
+extern "C" int initIp330Sweep(
+    const char *ip330Name, const char *serverName, int firstChan, int lastChan,
     int maxPoints, int queueSize)
 {
+    Ip330 *pIp330 = Ip330::findModule(ip330Name);
+    if (pIp330 == NULL) {
+       printf("initIp330Sweep: cannot find IP330 module %s\n", ip330Name);
+       return(-1);
+    }
     ip330Sweep *pIp330Sweep = new ip330Sweep(pIp330, firstChan, lastChan, maxPoints);
     fastSweepServer *pFastSweepServer = 
                      new fastSweepServer(serverName, pIp330Sweep, queueSize);
@@ -62,7 +69,7 @@ extern "C" ip330Sweep *initIp330Sweep(
         errlogPrintf("%s ip330SweepServer ThreadCreate Failure\n",
             serverName);
 
-    return(pIp330Sweep);
+    return(0);
 }
 
 ip330Sweep::ip330Sweep(Ip330 *pIp330, int firstChan, int lastChan, int maxPoints) :
@@ -107,3 +114,28 @@ double ip330Sweep::getMicroSecondsPerPoint()
     // Return dwell time in microseconds
     return(pIp330->getMicroSecondsPerScan() * (numAverage));
 }
+
+static const iocshArg sweepArg0 = { "ip330Name",iocshArgString};
+static const iocshArg sweepArg1 = { "serverName",iocshArgString};
+static const iocshArg sweepArg2 = { "firstChan",iocshArgInt};
+static const iocshArg sweepArg3 = { "lastChan",iocshArgInt};
+static const iocshArg sweepArg4 = { "maxPoints",iocshArgInt};
+static const iocshArg sweepArg5 = { "queueSize",iocshArgInt};
+static const iocshArg * sweepArgs[6] = {&sweepArg0,
+                                        &sweepArg1,
+                                        &sweepArg2,
+                                        &sweepArg3,
+                                        &sweepArg4,
+                                        &sweepArg5};
+static const iocshFuncDef sweepFuncDef = {"initIp330Sweep",6,sweepArgs};
+static void sweepCallFunc(const iocshArgBuf *args)
+{
+    initIp330Sweep(args[0].sval, args[1].sval, (int) args[2].sval,
+                   (int) args[3].sval, (int) args[4].sval, (int) args[5].sval);
+}
+void ip330SweepRegister(void)
+{
+    iocshRegister(&sweepFuncDef,sweepCallFunc);
+}
+
+epicsExportRegistrar(ip330SweepRegister);

@@ -21,6 +21,8 @@ of this distribution.
 #include <taskLib.h>
 
 #include <epicsThread.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 
 #include "Message.h"
 #include "WatchDog.h"
@@ -39,9 +41,13 @@ public:
 
 static char taskname[] = "ip330Config";
 extern "C" int initIp330Config(
-    Ip330 *pIp330, const char *serverName, int queueSize)
+    const char *ip330Name, const char *serverName, int queueSize)
 {
-    if (!pIp330) return(0);
+    Ip330 *pIp330 = Ip330::findModule(ip330Name);
+    if (pIp330 == NULL) {
+       printf("initIp330Config: cannot find IP330 module %s\n", ip330Name);
+       return(-1);
+    }
     Ip330ConfigServer *pIp330ConfigServer = new Ip330ConfigServer;
     pIp330ConfigServer->pIp330 = pIp330;
     pIp330ConfigServer->pMessageServer = new MessageServer(serverName,queueSize);
@@ -85,3 +91,24 @@ void Ip330ConfigServer::ip330Server(Ip330ConfigServer *pIp330ConfigServer)
         }
     }
 }
+
+static const iocshArg configArg0 = { "ip330Name",iocshArgString};
+static const iocshArg configArg1 = { "serverName",iocshArgString};
+static const iocshArg configArg2 = { "queueSize",iocshArgInt};
+static const iocshArg * configArgs[3] = {&configArg0,
+                                        &configArg1,
+                                        &configArg2};
+static const iocshFuncDef configFuncDef = {"initIp330Config",3,configArgs};
+static void configCallFunc(const iocshArgBuf *args)
+{
+    initIp330Config(args[0].sval, args[1].sval, (int) args[2].sval);
+}
+
+void ip330ConfigRegister(void)
+{
+    iocshRegister(&configFuncDef,configCallFunc);
+}
+
+epicsExportRegistrar(ip330ConfigRegister);
+
+

@@ -16,6 +16,8 @@
 #include <string.h>
 
 #include <epicsThread.h>
+#include <iocsh.h>
+#include <epicsExport.h>
 #include "Message.h"
 
 #include "fastPID.h"
@@ -46,9 +48,19 @@ private:
 // fastPID object from the vxWorks command line, which does not understand C++ syntax.
 static char taskname[] = "ip330PID";
 extern "C" int initIp330PID(const char *serverName, 
-         Ip330 *pIp330, int ADCChannel, DAC128V *pDAC128V, int DACChannel,
+         const char *ip330Name, int ADCChannel, const char *dacName, int DACChannel,
          int queueSize)
 {
+    Ip330 *pIp330 = Ip330::findModule(ip330Name);
+    if (pIp330 == NULL) {
+       printf("initIp330PID: cannot find IP330 module %s\n", ip330Name);
+       return(-1);
+    }
+    DAC128V *pDAC128V = DAC128V::findModule(dacName);
+    if (pDAC128V == NULL) {
+       printf("initIp330PID: cannot find DAC128V module %s\n", dacName);
+       return(-1);
+    }
     Ip330PID *pIp330PID = new Ip330PID(pIp330, ADCChannel, pDAC128V, DACChannel);
     fastPIDServer *pFastPIDServer = 
                           new fastPIDServer(serverName, pIp330PID, queueSize);
@@ -116,3 +128,32 @@ void Ip330PID::writeOutput(double output)
 {
     pDAC128V->setValue((int)output, DACChannel);
 }
+
+static const iocshArg PIDArg0 = { "serverName",iocshArgString};
+static const iocshArg PIDArg1 = { "ip330Name",iocshArgString};
+static const iocshArg PIDArg2 = { "ADCChannel",iocshArgInt};
+static const iocshArg PIDArg3 = { "dacName",iocshArgString};
+static const iocshArg PIDArg4 = { "DACChannel",iocshArgInt};
+static const iocshArg PIDArg5 = { "queueSize",iocshArgInt};
+static const iocshArg * PIDArgs[6] = {&PIDArg0,
+                                      &PIDArg1,
+                                      &PIDArg2,
+                                      &PIDArg3,
+                                      &PIDArg4,
+                                      &PIDArg5};
+static const iocshFuncDef PIDFuncDef = {"initIp330PID",6,PIDArgs};
+static void PIDCallFunc(const iocshArgBuf *args)
+{
+    initIp330PID(args[0].sval, args[1].sval, (int) args[2].sval,
+                 args[3].sval, (int) args[4].sval, (int) args[5].sval);
+}
+
+void ip330PIDRegister(void)
+{
+    iocshRegister(&PIDFuncDef,PIDCallFunc);
+}
+
+epicsExportRegistrar(ip330PIDRegister);
+
+
+
