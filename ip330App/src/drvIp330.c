@@ -67,7 +67,6 @@ of this distribution.
 #include <cantProceed.h>
 #include <asynDriver.h>
 #include <asynInt32.h>
-#include <asynUInt32Digital.h>
 #include <asynFloat64.h>
 #include <asynInt32Callback.h>
 #include <asynFloat64Callback.h>
@@ -213,7 +212,6 @@ typedef struct drvIp330Pvt {
     ELLLIST clientList;
     asynInterface common;
     asynInterface int32;
-    asynInterface uint32Digital;
     asynInterface float64;
     asynInterface int32Callback;
     asynInterface float64Callback;
@@ -228,10 +226,6 @@ static asynStatus writeInt32        (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 value);
 static asynStatus getBounds         (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 *low, epicsInt32 *high);
-static asynStatus readUInt32Digital (void *drvPvt, asynUser *pasynUser,
-                                     epicsUInt32 *value, epicsUInt32 mask);
-static asynStatus writeUInt32Digital(void *drvPvt, asynUser *pasynUser,
-                                     epicsUInt32 value, epicsUInt32 mask);
 static asynStatus readFloat64       (void *drvPvt, asynUser *pasynUser,
                                      epicsFloat64 *value);
 static asynStatus writeFloat64      (void *drvPvt, asynUser *pasynUser,
@@ -311,11 +305,6 @@ static const asynInt32 drvIp330Int32 = {
     writeInt32,
     readInt32,
     getBounds
-};
-
-static const asynUInt32Digital drvIp330UInt32Digital = {
-    writeUInt32Digital,
-    readUInt32Digital
 };
 
 static const asynFloat64 drvIp330Float64 = {
@@ -413,9 +402,6 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     pPvt->int32.interfaceType = asynInt32Type;
     pPvt->int32.pinterface  = (void *)&drvIp330Int32;
     pPvt->int32.drvPvt = pPvt;
-    pPvt->uint32Digital.interfaceType = asynUInt32DigitalType;
-    pPvt->uint32Digital.pinterface  = (void *)&drvIp330UInt32Digital;
-    pPvt->uint32Digital.drvPvt = pPvt;
     pPvt->float64.interfaceType = asynFloat64Type;
     pPvt->float64.pinterface  = (void *)&drvIp330Float64;
     pPvt->float64.drvPvt = pPvt;
@@ -448,11 +434,6 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     status = pasynManager->registerInterface(pPvt->portName,&pPvt->int32);
     if (status != asynSuccess) {
         errlogPrintf("initIp330 ERROR: Can't register int32\n");
-        return -1;
-    }
-    status = pasynManager->registerInterface(pPvt->portName,&pPvt->uint32Digital);
-    if (status != asynSuccess) {
-        errlogPrintf("initIp330 ERROR: Can't register uint32Digital\n");
         return -1;
     }
     status = pasynManager->registerInterface(pPvt->portName,&pPvt->float64);
@@ -600,38 +581,19 @@ static asynStatus readInt32(void *drvPvt, asynUser *pasynUser,
     pasynManager->getAddr(pasynUser, &channel);
     if ((pcommand == NULL) || (*pcommand == ip330Data)) {
         *value = pPvt->correctedData[channel];
-        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-                  "drvIp330::readInt32, value=%d", *value);
-        return(asynSuccess);
+    } else if (*pcommand == ip330Gain) {
+        *value = pPvt->chanSettings[channel].gain;
     } else {
         asynPrint(pasynUser, ASYN_TRACE_ERROR,
                   "drvIp330::readInt32 invalid command=%d\n",
                   *pcommand);
         return(asynError);
     }
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+              "drvIp330::readInt32, value=%d", *value);
+    return(asynSuccess);
 }
 
-static asynStatus readUInt32Digital(void *drvPvt, asynUser *pasynUser, 
-                                    epicsUInt32 *value, epicsUInt32 mask)
-{
-    drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
-    int channel;
-    ip330Command *pcommand = pasynUser->drvUser;
-
-    if (pPvt->rebooting) taskSuspend(0);
-    pasynManager->getAddr(pasynUser, &channel);
-    if ((pcommand == NULL) || (*pcommand == ip330Gain)) {
-        *value = pPvt->chanSettings[channel].gain;
-        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-                  "drvIp330::readUInt32Digital, value=%d", *value);
-        return(asynSuccess);
-    } else {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::readUInt32Digital invalid command=%d\n",
-                  *pcommand);
-        return(asynError);
-    }
-}
 
 static asynStatus readFloat64(void *drvPvt, asynUser *pasynUser,
                               epicsFloat64 *value)
@@ -659,14 +621,6 @@ static asynStatus readFloat64(void *drvPvt, asynUser *pasynUser,
     return(status);
 }
 
-static asynStatus writeInt32(void *drvPvt, asynUser *pasynUser, 
-                             epicsInt32 value)
-{
-    asynPrint(pasynUser, ASYN_TRACE_ERROR,
-              "drvIp330::writeInt32 invalid command\n");
-    return(asynError);
-}
-
 static asynStatus getBounds(void *drvPvt, asynUser *pasynUser,
                             epicsInt32 *low, epicsInt32 *high)
 {
@@ -677,21 +631,20 @@ static asynStatus getBounds(void *drvPvt, asynUser *pasynUser,
     return(asynSuccess);
 }
 
-static asynStatus writeUInt32Digital(void *drvPvt, asynUser *pasynUser, 
-                                     epicsUInt32 value, epicsUInt32 mask)
+static asynStatus writeInt32(void *drvPvt, asynUser *pasynUser, 
+                             epicsInt32 value)
 {
     ip330Command *pcommand = pasynUser->drvUser;
     asynStatus status;
 
-    if ((pcommand == NULL) || (*pcommand == ip330Gain)) {
+    if (pcommand && (*pcommand == ip330Gain)) {
         status = setGain(drvPvt, pasynUser, value);
         asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-                  "drvIp330::writeUInt32Digital, value=%d", value);
+                  "drvIp330::writeInt32, value=%d", value);
         return(status);
     } else {
         asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::writeUInt32Digital invalid command=%d\n",
-                  *pcommand);
+                  "drvIp330::writeInt32D invalid command\n");
         return(asynError);
     }
 }

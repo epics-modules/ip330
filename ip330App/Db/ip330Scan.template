@@ -15,6 +15,6 @@ record(longout,"$(P)$(R)Gain")
 {
         field(PINI,"YES")
         field(VAL,"$(GAIN)")
-        field(DTYP,"asynUInt32Digital")
+        field(DTYP,"asynInt32")
         field(OUT,"@asyn($(PORT) $(S))GAIN")
 }
