@@ -193,6 +193,8 @@ typedef struct drvIp330Pvt {
     int rebooting;
     int mailBoxOffset;
     epicsMessageQueueId intMsgQId;
+    int messagesSent;
+    int messagesFailed;
     double actualScanPeriod;
     ELLLIST clientList;
     asynInterface common;
@@ -298,7 +300,6 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     unsigned char model;
     drvIp330Pvt *pPvt;
     asynStatus status;
-    int priority=0;
     int i;
     epicsTimerQueueId timerQueueId;
 
@@ -350,37 +351,6 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
                                            sizeof(ip330ADCSettings),
                                            "initIp330");
     ellInit(&pPvt->clientList);
-    pPvt->regs = (ip330ADCregs *) ipmBaseAddr(carrier, slot, ipac_addrIO);;
-    /* wdId = new WatchDog; */
-    pPvt->lock = epicsMutexCreate();
-    pPvt->regs->startConvert = 0x0000;
-    pPvt->regs->intVector = intVec;
-    if(intConnect(INUM_TO_IVEC(intVec), (VOIDFUNCPTR)intFunc, 
-                  (int)pPvt) == ERROR) {
-        errlogPrintf("initIp330 intConnect Failure\n");
-        return -1;
-    }
-    /* Reboot::rebootHookAdd(rebootCallback,(void *)this); */
-    /* Program chip registers */
-    pPvt->regs->control = 0x0000;
-    pPvt->regs->control |= 0x0002; /* Output Data Format = Straight Binary */
-    setTrigger(pPvt, TRIGGER_DIRECTION);
-    setScanMode(pPvt, SCAN_MODE);
-    pPvt->regs->control |= 0x0800; /* Timer Enable = Enable */
-    setScanPeriod(pPvt, pPvt->pasynUser, MICROSECONDS_PER_SCAN/1.e6);
-    if(pPvt->type==differential) {
-        pPvt->regs->control |= 0x0000;
-    } else {
-        pPvt->regs->control |= 0x0008;
-    }
-    /* Channels to convert */
-    pPvt->regs->startChanVal = firstChan;
-    pPvt->regs->endChanVal = lastChan;
-    for (i = firstChan; i <= lastChan; i++) {
-        /* default to gain of 0 */
-        setGainPrivate(pPvt, pPvt->range, 0, i);
-    }
-    setSecondsBetweenCalibrate(pPvt, pPvt->pasynUser, SECONDS_BETWEEN_CALIBRATE);
 
     /* Link with higher level routines */
     pPvt->common.interfaceType = asynCommonType;
@@ -405,10 +375,10 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     pPvt->ip330.pinterface  = (void *)&drvIp330;
     pPvt->ip330.drvPvt = pPvt;
     status = pasynManager->registerPort(portName,
-                                   1, /*is multiDevice*/
-                                   1,
-                                   priority,
-                                   0);
+                                        ASYN_MULTIDEVICE, /*is multiDevice*/
+                                        1,  /*  autoconnect */
+                                        0,  /* medium priority */
+                                        0); /* default stack size */
     if (status != asynSuccess) {
         errlogPrintf("initIp330 ERROR: Can't register port\n");
         return -1;
@@ -461,6 +431,38 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
         errlogPrintf("initIp330, connectDevice failed for ip330\n");
         return -1;
     }
+
+    /* Program device registers */
+    pPvt->regs = (ip330ADCregs *) ipmBaseAddr(carrier, slot, ipac_addrIO);;
+    /* wdId = new WatchDog; */
+    pPvt->lock = epicsMutexCreate();
+    pPvt->regs->startConvert = 0x0000;
+    pPvt->regs->intVector = intVec;
+    if(intConnect(INUM_TO_IVEC(intVec), (VOIDFUNCPTR)intFunc, 
+                  (int)pPvt) == ERROR) {
+        errlogPrintf("initIp330 intConnect Failure\n");
+        return -1;
+    }
+    /* Reboot::rebootHookAdd(rebootCallback,(void *)this); */
+    pPvt->regs->control = 0x0000;
+    pPvt->regs->control |= 0x0002; /* Output Data Format = Straight Binary */
+    setTrigger(pPvt, TRIGGER_DIRECTION);
+    setScanMode(pPvt, SCAN_MODE);
+    pPvt->regs->control |= 0x0800; /* Timer Enable = Enable */
+    setScanPeriod(pPvt, pPvt->pasynUser, MICROSECONDS_PER_SCAN/1.e6);
+    if(pPvt->type==differential) {
+        pPvt->regs->control |= 0x0000;
+    } else {
+        pPvt->regs->control |= 0x0008;
+    }
+    /* Channels to convert */
+    pPvt->regs->startChanVal = firstChan;
+    pPvt->regs->endChanVal = lastChan;
+    for (i = firstChan; i <= lastChan; i++) {
+        /* default to gain of 0 */
+        setGainPrivate(pPvt, pPvt->range, 0, i);
+    }
+    setSecondsBetweenCalibrate(pPvt, pPvt->pasynUser, SECONDS_BETWEEN_CALIBRATE);
 
     return 0;
 }
@@ -718,7 +720,10 @@ static void intFunc(void *drvPvt)
         data[i] = (pPvt->regs->mailBox[i + pPvt->mailBoxOffset]);
     }
     /* Wake up task which calls callback routines */
-    epicsMessageQueueTrySend(pPvt->intMsgQId, data, sizeof(data));
+    if (epicsMessageQueueTrySend(pPvt->intMsgQId, data, sizeof(data)) == 0)
+        pPvt->messagesSent++;
+    else
+        pPvt->messagesFailed++;
     if(!pPvt->rebooting) ipmIrqCmd(pPvt->carrier, pPvt->slot, 0, ipac_irqEnable);
 }
 
@@ -977,9 +982,11 @@ static void report(void *drvPvt, FILE *fp, int details)
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int i;
 
-    fprintf(fp, "Port: %s, carrier %d slots %d, base addres=%p\n", 
+    fprintf(fp, "Port: %s, carrier %d slots %d, base address=%p\n", 
             pPvt->portName, pPvt->carrier, pPvt->slot, pPvt->regs);
     if (details >= 1) {
+        fprintf(fp, "    messages sent OK=%d; send failed (queue full)=%d\n",
+                pPvt->messagesSent, pPvt->messagesFailed);
         fprintf(fp, "    firstChan=%d, lastChan=%d, scanPeriod=%f\n",
                 pPvt->firstChan, pPvt->lastChan, pPvt->actualScanPeriod);
         for (i=0; i<MAX_IP330_CHANNELS; i++) {
