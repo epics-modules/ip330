@@ -54,7 +54,7 @@ extern "C" Ip330PID *initIp330PID(const char *serverName,
     Ip330PID *pIp330PID = new Ip330PID(pIp330, ADCChannel, pDAC128V, DACChannel);
     fastPIDServer *pFastPIDServer = 
                           new fastPIDServer(serverName, pIp330PID, queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,2000,
+    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
         (FUNCPTR)fastPIDServer::fastServer,(int)pFastPIDServer,
         0,0,0,0,0,0,0,0,0);
     if (taskId==ERROR)

@@ -83,7 +83,7 @@ extern "C" int initIp330Scan(Ip330 *pIp330, const char *serverName,
     Ip330ScanServer *pIp330ScanServer = new Ip330ScanServer;
     pIp330ScanServer->pIp330Scan = pIp330Scan;
     pIp330ScanServer->pMessageServer = new MessageServer(serverName,queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,2000,
+    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
         (FUNCPTR)Ip330ScanServer::ip330Server,(int)pIp330ScanServer,
         0,0,0,0,0,0,0,0,0);
     if(taskId==ERROR)

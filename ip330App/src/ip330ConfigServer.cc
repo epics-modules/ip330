@@ -44,7 +44,7 @@ extern "C" int initIp330Config(
     Ip330ConfigServer *pIp330ConfigServer = new Ip330ConfigServer;
     pIp330ConfigServer->pIp330 = pIp330;
     pIp330ConfigServer->pMessageServer = new MessageServer(serverName,queueSize);
-    int taskId = taskSpawn(taskname,100,VX_FP_TASK,2000,
+    int taskId = taskSpawn(taskname,100,VX_FP_TASK,4000,
         (FUNCPTR)Ip330ConfigServer::ip330Server,(int)pIp330ConfigServer,
         0,0,0,0,0,0,0,0,0);
     if(taskId==ERROR)
