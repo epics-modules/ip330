@@ -41,6 +41,7 @@ of this distribution.
                  uniformSingle and burstSingle scan modes in intFunc.
     31-Mar-2003  Mark Rivers
                  Minor change, changed all hardcoded values of 32 to MAX_IP330_CHANNELS
+                 Removed calls to intConfig(), Andrew Johnson says they are not neeced.
 */
 
 #include <vxWorks.h>
@@ -245,7 +246,6 @@ Ip330:: Ip330(
     wdId = new WatchDog;
     lock = semMCreate(SEM_Q_FIFO);
     regs->startConvert = 0x0000;
-    pIPM->intConfig(0); pIPM->intConfig(1);
     regs->intVector = intVec;
     if(intConnect(INUM_TO_IVEC(intVec),(VOIDFUNCPTR)intFunc,(int)this)==ERROR){
         printf("Ip330 intConnect Failure\n");
