@@ -10,7 +10,8 @@ of this distribution.
     Date: 2/15/95
     Current Authors: Mark Rivers, Joe Sullivan, and Marty Kraimer
     Converted to MPF: 12/9/98
-    Converted to ip330 (base class) from ip330Scan: MLR 10/27/99
+    27-Oct-1999  MLR  Converted to ip330 (base class) from ip330Scan: 
+    31-Mar-2003  MLR  Added MAX_IP330_CHANNELS definition
 
 */
 
@@ -19,6 +20,8 @@ of this distribution.
 
 #include <fppLib.h>
 #include <semLib.h>
+
+#define MAX_IP330_CHANNELS 32
 
 class WatchDog;
 class MessageServer;
@@ -73,7 +76,7 @@ private:
     int range;
     volatile ip330ADCregs* regs;
     ip330ADCSettings *chanSettings;
-    int chanData[32];
+    int chanData[MAX_IP330_CHANNELS];
     int firstChan;
     int lastChan;
     scanModeType scanMode;
