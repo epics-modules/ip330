@@ -4,7 +4,8 @@ include $(TOP)/config/CONFIG_APP
 #----------------------------------------
 #  ADD MACRO DEFINITIONS AFTER THIS LINE
 
-DBDINSTALL += devIp330.dbd
+DBDINSTALL += devAiIp330.dbd
+DBDINSTALL += devEpidIp330.dbd
 
 include $(TOP)/config/RULES.Host
 #----------------------------------------

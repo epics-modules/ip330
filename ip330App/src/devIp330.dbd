@@ -1,4 +1,0 @@
-device(ai,VME_IO,devAiIp330Scan,"ip330Scan")
-device(longout,VME_IO,devLoIp330Config,"ip330Config")
-# Comment out the following line if epidRecord is not used
-device(epid,VME_IO,devEpidIp330,"MPF EPID")

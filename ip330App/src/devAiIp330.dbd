@@ -1,0 +1,2 @@
+device(ai,VME_IO,devAiIp330Scan,"ip330Scan")
+device(longout,VME_IO,devLoIp330Config,"ip330Config")
