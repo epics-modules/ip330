@@ -72,7 +72,7 @@ of this distribution.
 #include <asynFloat64Callback.h>
 #include <asynInt32ArrayCallback.h>
 
-#include "drvIp330.h" 
+#include "asynIp330.h" 
 
 
 #define SCAN_DISABLE    0xC8FF  /* control register AND mask - */

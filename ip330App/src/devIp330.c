@@ -34,7 +34,7 @@
 #include <recGbl.h>
 #include <alarm.h>
 
-#include "drvIp330.h"
+#include "asynIp330.h"
 
 
 typedef enum {recTypeAi, recTypeLo} recType;

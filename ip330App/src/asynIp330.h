@@ -1,4 +1,4 @@
-/* drvIp330.h
+/* asynIp330.h
 
 ********************COPYRIGHT NOTIFICATION**********************************
 This software was developed under a United States Government license
@@ -26,8 +26,8 @@ of this distribution.
 
 */
 
-#ifndef drvIp330H
-#define drvIp330H
+#ifndef asynIp330H
+#define asynIp330H
 
 #include <asynDriver.h>
 
