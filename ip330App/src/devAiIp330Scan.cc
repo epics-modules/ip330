@@ -12,6 +12,12 @@ of this distribution.
     Current Author: Joe Sullivan and Marty Kraimer
     Converted to MPF: 12/9/98
 
+    31-Mar-2003 MLR  Added the scan time of the record in msec to
+                     the "extra" field of the message.  This makes the
+                     time to average be equal to the scan time of the
+                     record.  Previously a fixed averaging time was set
+                     at boot time and applied to all channels.
+
 */
 
 
@@ -28,6 +34,7 @@ extern "C" {
 #include "dbCommon.h"
 #include "aiRecord.h"
 #include "recSup.h"
+#include "dbScan.h"
 }
 
 #include "Message.h"
@@ -46,6 +53,11 @@ private:
 	int channel;
 	int gain;
 };
+
+// The following definition is bad, it assumes the standard EPICS scan rates.
+//  But EPICS does not provide an API to get the actual scan rates of the tasks,
+// so we live with it for now.
+static int epics_scan_times[]={10000, 5000, 2000, 1000, 500, 200, 100};
 
 MAKE_LINCONV_DSET(devAiIp330Scan,DevAiIp330Scan::dev_init)
 
@@ -67,11 +79,16 @@ DevAiIp330Scan::DevAiIp330Scan(dbCommon* pr,DBLINK* l) : DevMpf(pr,l,false)
     return;
 }
 
-long DevAiIp330Scan::startIO(dbCommon* )
+long DevAiIp330Scan::startIO(dbCommon* pr)
 {
+    aiRecord* pai = (aiRecord*)pr;
     Int32Message *message = new Int32Message;
     message->value =gain;
     message->address =channel;
+    message->extra = 0;
+    if ((pai->scan >= SCAN_1ST_PERIODIC) && (pai->scan <= 9)) {
+    	message->extra = epics_scan_times[pai->scan - SCAN_1ST_PERIODIC];
+    }
     return(sendReply(message));
 }
 
