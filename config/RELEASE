@@ -13,5 +13,5 @@ include $(TOP)/../config/MCA_RELEASE
 include $(TOP)/../config/DAC128V_RELEASE
 include $(TOP)/../config/STD_RELEASE
 include $(TOP)/../config/MPF_RELEASE
-include $(TOP)/../config/EPICS_BASE_RELEASE
+include $(TOP)/../config/RELEASE
 
