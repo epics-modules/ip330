@@ -515,9 +515,9 @@ static asynStatus readInt32(void *drvPvt, asynUser *pasynUser,
     } else if (command == ip330Gain) {
         *value = pPvt->chanSettings[channel].gain;
     } else {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::readInt32 invalid command=%d\n",
-                  command);
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "drvIp330::readInt32 invalid command=%d",
+                      command);
         return(asynError);
     }
     asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
@@ -542,9 +542,9 @@ static asynStatus readFloat64(void *drvPvt, asynUser *pasynUser,
     } else if (command == ip330CalibratePeriod) {
         *value = pPvt->secondsBetweenCalibrate;
     } else {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::readFloat64 invalid command=%d\n",
-                  command);
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "drvIp330::readFloat64 invalid command=%d",
+                      command);
         return(asynError);
     }
     asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
@@ -574,8 +574,9 @@ static asynStatus writeInt32(void *drvPvt, asynUser *pasynUser,
                   "drvIp330::writeInt32, value=%d", value);
         return(status);
     } else {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::writeInt32D invalid command\n");
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "drvIp330::writeInt32D invalid command=%d",
+                      command);
         return(asynError);
     }
 }
@@ -587,17 +588,18 @@ static asynStatus writeFloat64(void *drvPvt, asynUser *pasynUser,
     asynStatus status=asynError;
 
     if (command == ip330Data) {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::writeFloat64 invalid command\n");
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "drvIp330::writeFloat64 invalid command=%d",
+                      command);
         return(asynError);
     } else if (command == ip330ScanPeriod) {
         status = setScanPeriod(drvPvt, pasynUser, value);
     } else if (command == ip330CalibratePeriod) {
         status = setSecondsBetweenCalibrate(drvPvt, pasynUser, value);
     } else {
-        asynPrint(pasynUser, ASYN_TRACE_ERROR,
-                  "drvIp330::writeFloat64 invalid command=%d,
-                  command\n");
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                      "drvIp330::writeFloat64 invalid command=%d",
+                      command);
         return(asynError);
     }
     asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
@@ -1035,8 +1037,8 @@ static asynStatus drvUserCreate(void *drvPvt, asynUser *pasynUser,
             return(asynSuccess);
         }
     }
-    asynPrint(pasynUser, ASYN_TRACE_ERROR,
-              "drvIp330::drvUserCreate, unknown command=%s\n", drvInfo);
+    epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
+                  "drvIp330::drvUserCreate, unknown command=%s", drvInfo);
     return(asynError);
 }
     
@@ -1065,6 +1067,8 @@ static void report(void *drvPvt, FILE *fp, int details)
 {
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int i;
+    interruptNode *pnode;
+    ELLLIST *pclientList;
 
     fprintf(fp, "Port: %s, carrier %d slot %d, base address=%p\n", 
             pPvt->portName, pPvt->carrier, pPvt->slot, pPvt->regs);
@@ -1079,6 +1083,40 @@ static void report(void *drvPvt, FILE *fp, int details)
                    pPvt->chanSettings[i].adj_slope, 
                    pPvt->chanData[i], pPvt->correctedData[i]);
         }
+        /* Report int32 interrupts */
+        pasynManager->interruptStart(pPvt->int32InterruptPvt, &pclientList);
+        pnode = (interruptNode *)ellFirst(pclientList);
+        while (pnode) {
+            asynInt32Interrupt *pint32Interrupt = pnode->drvPvt;
+            fprintf(fp, "    int32 callback client address=%p, addr=%d, reason=%d\n",
+                    pint32Interrupt->callback, pint32Interrupt->addr, 
+                    pint32Interrupt->reason);
+            pnode = (interruptNode *)ellNext(&pnode->node);
+        }
+        pasynManager->interruptEnd(pPvt->int32InterruptPvt);
+
+        /* Report float64 interrupts */
+        pasynManager->interruptStart(pPvt->float64InterruptPvt, &pclientList);
+        pnode = (interruptNode *)ellFirst(pclientList);
+        while (pnode) {
+            asynFloat64Interrupt *pfloat64Interrupt = pnode->drvPvt;
+            fprintf(fp, "    float64 callback client address=%p, addr=%d, reason=%d\n",
+                    pfloat64Interrupt->callback, pfloat64Interrupt->addr, 
+                    pfloat64Interrupt->reason);
+            pnode = (interruptNode *)ellNext(&pnode->node);
+        }
+        pasynManager->interruptEnd(pPvt->float64InterruptPvt);
+
+        /* Report int32Array interrupts */
+        pasynManager->interruptStart(pPvt->int32ArrayInterruptPvt, &pclientList);
+        pnode = (interruptNode *)ellFirst(pclientList);
+        while (pnode) {
+            asynInt32ArrayInterrupt *pint32ArrayInterrupt = pnode->drvPvt;
+            fprintf(fp, "    int32Array callback client address=%p, reason=%d\n",
+                    pint32ArrayInterrupt->callback, pint32ArrayInterrupt->reason); 
+            pnode = (interruptNode *)ellNext(&pnode->node);
+        }
+        pasynManager->interruptEnd(pPvt->int32ArrayInterruptPvt);
     }
 }
 
