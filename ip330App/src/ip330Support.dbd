@@ -1,0 +1,3 @@
+device(ai,VME_IO,devAiIp330,"Ip330")
+device(longout,VME_IO,devLoIp330,"Ip330")
+registrar(ip330Register)
