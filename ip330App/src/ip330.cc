@@ -35,6 +35,10 @@ of this distribution.
                  Removed calls to intClear and intDisable.
                  These were not necessary and did not work on dumb IP carrier.
     12-Oct-2001  Marty Kraimer. Code to handle soft reboots.
+    31-Jul-2002  Carl Lionberger and Eric Snow
+                 Moved interupt enable to end of config, properly masked mode 
+                 control bits in setScanMode, and adjusted mailBoxOffset for 
+                 uniformSingle and burstSingle scan modes in intFunc.
 */
 
 #include <vxWorks.h>
@@ -251,7 +255,6 @@ Ip330:: Ip330(
     setTrigger(TRIGGER_DIRECTION);
     setScanMode(SCAN_MODE);
     regs->control |= 0x0800; /* Timer Enable = Enable */
-    regs->control |= 0x2000; /* = Interrupt After All Selected */
     setTimeRegs(MICROSECONDS_PER_SCAN);
     if(type==differential) {
         regs->control |= 0x0000;
@@ -285,6 +288,7 @@ int Ip330:: config(scanModeType scan, const char *triggerString,
     setMicroSecondsPerScan(microSeconds);
     setSecondsBetweenCalibrate(secondsCalibrate);
     autoCalibrate((void *)this);
+    regs->control |= 0x2000; /* = Interrupt After All Selected */
     return(0);
 }
 
@@ -367,6 +371,7 @@ int Ip330::setScanMode(scanModeType mode)
     if(rebooting) taskSuspend(0);
     if ((mode < disable) || (mode > convertOnExternalTriggerOnly)) return(-1);
     scanMode = mode;
+    regs->control &= ~(0x7 << 8);		// Kill all control bits first
     regs->control |= scanMode << 8;
     return(0);
 }
@@ -400,10 +405,13 @@ void Ip330:: intFunc(void *v)
     if (t->pFpContext != NULL) fppSave (t->pFpContext);
     if (t->type == differential) {
        // Must alternate between reading data from mailBox[i] and mailBox[i+16]
-       if (t->mailBoxOffset == 0) 
-          t->mailBoxOffset = 16; 
+       // Except in case of uniform/burstSingle, where only half of mailbox is 
+       // used.
+       if( t->scanMode == uniformSingle || t->scanMode==burstSingle 
+                                        || t->mailBoxOffset==16)
+          t->mailBoxOffset = 0; 
        else 
-          t->mailBoxOffset = 0;
+          t->mailBoxOffset = 16;
     }
     for (i = t->firstChan; i <= t->lastChan; i++) {
         t->chanData[i] = (t->regs->mailBox[i + t->mailBoxOffset]);
@@ -430,8 +438,8 @@ void Ip330:: waitNewData()
 void Ip330::setSecondsBetweenCalibrate(int seconds)
 {
     if(rebooting) taskSuspend(0);
-   secondsBetweenCalibrate = seconds;
-   autoCalibrate((void *)this);
+    secondsBetweenCalibrate = seconds;
+    autoCalibrate((void *)this);
 }
 
 void Ip330::autoCalibrate(void * parm)
