@@ -2,7 +2,7 @@ record(ai,"$(P)$(R)")
 {
         field(SCAN,"$(SCAN)")
         field(DTYP,"ip330Scan")
-        field(INP,"#C$(C) S$(S) @$(IPSLOT)-Ip330Scan,$(GAIN)")
+        field(INP,"#C$(C) S$(S) @$(SERVER),$(GAIN)")
         field(LINR,"LINEAR")
         field(EGUF,"$(EGUF)")
         field(EGUL,"$(EGUL)")
