@@ -59,6 +59,8 @@ of this distribution.
 #include <gpHash.h>
 #include <iocsh.h>
 #include <epicsExport.h>
+#include <epicsThread.h>
+#include <epicsEvent.h>
 
 #include "Reboot.h"
 #include "Ip330.h"
@@ -263,10 +265,6 @@ Ip330:: Ip330(
         printf("Ip330 calloc failed\n");
         return;
     }
-    if (fppProbe()==OK) 
-       pFpContext = (FP_CONTEXT *)calloc(1, sizeof(FP_CONTEXT));
-    else
-       pFpContext = NULL;
  
     regs = (ip330ADCregs *) ipmBaseAddr(carrier, slot, ipac_addrIO);;
     wdId = new WatchDog;
@@ -297,6 +295,7 @@ Ip330:: Ip330(
         setGain(range,0,i);
     }
     setSecondsBetweenCalibrate(SECONDS_BETWEEN_CALIBRATE);
+ 
 }
 
 int Ip330:: config(scanModeType scan, const char *triggerString, 
@@ -317,6 +316,12 @@ int Ip330:: config(scanModeType scan, const char *triggerString,
     setSecondsBetweenCalibrate(secondsCalibrate);
     autoCalibrate((void *)this);
     regs->control |= 0x2000; /* = Interrupt After All Selected */
+    intEvent = new epicsEvent(epicsEventEmpty);
+    if (epicsThreadCreate("Ip330intTask",
+                           epicsThreadPriorityHigh, 10000,
+                           (EPICSTHREADFUNC)Ip330::intTask,
+                           (void*)this) == NULL)
+       errlogPrintf("Ip330intTask epicsThreadCreate failure\n");
     return(0);
 }
 
@@ -426,11 +431,8 @@ int Ip330::registerCallback(Ip330Callback callback, void *pvt)
 void Ip330:: intFunc(void *v)
 {
     Ip330 *t = (Ip330 *) v;
-    int    i;
+    int i;
 
-    // Save and restore FP registers so application interrupt functions can do
-    // floating point operations.  Skip if no fpp hardware present.
-    if (t->pFpContext != NULL) fppSave (t->pFpContext);
     if (t->type == differential) {
        // Must alternate between reading data from mailBox[i] and mailBox[i+16]
        // Except in case of uniform/burstSingle, where only half of mailbox is 
@@ -444,14 +446,26 @@ void Ip330:: intFunc(void *v)
     for (i = t->firstChan; i <= t->lastChan; i++) {
         t->chanData[i] = (t->regs->mailBox[i + t->mailBoxOffset]);
     }
-    // Call the callback routines which have registered
-    for (i = 0; i < t->numClients; i++) {
-       t->clientCallback[i]( t->clientPvt[i], t->chanData);
-    }
-    if (t->pFpContext != NULL) fppRestore(t->pFpContext);
+    // Wake up task which calls callback routines
+    t->intEvent->signal();
     if(!t->rebooting) ipmIrqCmd(t->carrier, t->slot, 0, ipac_irqEnable);
 }
 
+void Ip330:: intTask(Ip330 *t)
+{
+    int    i;
+
+    while(1) {
+       // Wait for event from interrupt routine
+       t->intEvent->wait();
+       // Call the callback routines which have registered
+       for (i = 0; i < t->numClients; i++) {
+          t->clientCallback[i]( t->clientPvt[i], t->chanData);
+       }
+   }
+}
+
+
 
 #define MAX_TIMES 1000000
 void Ip330:: waitNewData()

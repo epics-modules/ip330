@@ -18,7 +18,6 @@ of this distribution.
 #ifndef ip330H
 #define ip330H
 
-#include <fppLib.h>
 #include <semLib.h>
 
 #define MAX_IP330_CHANNELS 32
@@ -56,6 +55,7 @@ public:
     float getMicroSecondsPerScan();
     void setSecondsBetweenCalibrate(int seconds);
     int registerCallback(Ip330Callback callback, void *pvt);
+    static void intTask(Ip330*);
 private:
     Ip330(ushort_t carrier, ushort_t slot,
              signalType type, int range, int firstChan, int lastChan,
@@ -72,7 +72,6 @@ private:
     ushort_t slot;
     WatchDog *wdId;
     SEM_ID lock;
-    FP_CONTEXT *pFpContext;
     signalType type;
     int range;
     volatile ip330ADCregs* regs;
@@ -87,6 +86,7 @@ private:
     bool rebooting;
     int numClients;
     int mailBoxOffset;
+    epicsEvent *intEvent;
     float actualMicroSecondsPerScan;
     void **clientPvt;
     Ip330Callback *clientCallback;
