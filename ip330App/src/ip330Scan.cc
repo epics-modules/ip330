@@ -44,10 +44,9 @@ public:
 class Ip330Scan
 {
 public:
-    static Ip330Scan * init(Ip330 *pIp330, int firstChan, int lastChan);
+    Ip330Scan(Ip330 *pIp330, int firstChan, int lastChan);
     int getValue(int channel);
     int setGain(int gain,int channel);
-    Ip330Scan(Ip330 *pIp330, int firstChan, int lastChan);
 private:
     static void callback(void*, int *data);   // Callback function from Ip330
     Ip330 *pIp330;
