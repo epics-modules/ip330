@@ -217,6 +217,8 @@ static asynStatus readInt32         (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 *value);
 static asynStatus writeInt32        (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 value);
+static asynStatus getBounds         (void *drvPvt, asynUser *pasynUser,
+                                     epicsInt32 *low, epicsInt32 *high);
 static asynStatus readFloat64       (void *drvPvt, asynUser *pasynUser,
                                      epicsFloat64 *value);
 static asynStatus writeFloat64      (void *drvPvt, asynUser *pasynUser,
@@ -268,7 +270,8 @@ static const asynCommon drvIp330Common = {
 
 static const asynInt32 drvIp330Int32 = {
     writeInt32,
-    readInt32
+    readInt32,
+    getBounds
 };
 
 static const asynFloat64 drvIp330Float64 = {
@@ -565,6 +568,14 @@ static asynStatus writeInt32(void *drvPvt, asynUser *pasynUser,
     asynPrint(pasynUser, ASYN_TRACE_ERROR,
               "drvIp330::writeInt32 invalid command\n");
     return(asynError);
+}
+
+static asynStatus getBounds(void *drvPvt, asynUser *pasynUser,
+                            epicsInt32 *low, epicsInt32 *high)
+{
+    *low = 0;
+    *high = 65535;
+    return(0);
 }
 
 static asynStatus writeFloat64(void *drvPvt, asynUser *pasynUser, 
