@@ -109,6 +109,7 @@ long DevAiIp330Scan::dev_init(void* v)
 	aiRecord* pr = (aiRecord*)v;
 	DevAiIp330Scan* pDevAiIp330Scan
             = new DevAiIp330Scan((dbCommon*)pr,&(pr->inp));
+      pDevAiIp330Scan->bind();
 	return pDevAiIp330Scan->getStatus();
 }
 

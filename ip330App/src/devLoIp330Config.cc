@@ -98,6 +98,7 @@ long DevLoIp330Config::dev_init(void* v)
 	longoutRecord* pr = (longoutRecord*)v;
 	DevLoIp330Config* pDevLoIp330Config
             = new DevLoIp330Config((dbCommon*)pr,&(pr->out));
+      pDevLoIp330Config->bind();
 	return pDevLoIp330Config->getStatus();
 }
 

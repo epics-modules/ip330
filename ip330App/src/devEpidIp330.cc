@@ -79,6 +79,7 @@ long DevEpidIp330::dev_init(void* v)
     epidRecord* pr = (epidRecord*)v;
     DevEpidIp330* pDevEpidIp330
             = new DevEpidIp330((dbCommon*)pr,&(pr->inp));
+    pDevEpidIp330->bind();
     return pDevEpidIp330->getStatus();
 }
 
