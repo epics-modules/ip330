@@ -2,9 +2,6 @@
 TOP = ../../..
 include $(TOP)/config/CONFIG_APP
 
-# Comment out the following 2 lines if epidRecord is not used
-SRCS.cc += ../devEpidMpf.cc
-DEVLIBOBJS += devEpidMpf.o 
 SRCS.cc += ../devLoIp330Config.cc
 DEVLIBOBJS += devLoIp330Config.o 
 SRCS.cc += ../devAiIp330Scan.cc
@@ -20,12 +17,8 @@ SRCS.cc += ../ip330Scan.cc
 IP330LIBOBJS += ip330Scan.o
 SRCS.cc += ../ip330Sweep.cc
 IP330LIBOBJS += ip330Sweep.o
-SRCS.cc += ../fastSweep.cc
-IP330LIBOBJS += fastSweep.o
 SRCS.cc += ../ip330PID.cc
 IP330LIBOBJS += ip330PID.o
-SRCS.cc += ../fastPID.cc
-IP330LIBOBJS += fastPID.o
 SRCS.cc += ../ip330ConfigServer.cc
 IP330LIBOBJS += ip330ConfigServer.o
 ip330Lib: $(IP330LIBOBJS)
@@ -33,4 +26,3 @@ ip330Lib: $(IP330LIBOBJS)
 PROD += ip330Lib
 
 include $(TOP)/config/RULES.Vx
-
