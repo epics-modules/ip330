@@ -91,12 +91,12 @@ void ip330Sweep::callback(void *v, int *newData)
        t->nextPoint(newData);
        return;
     }
-    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] += newData[i];
+    for (i=t->firstChan; i<=t->lastChan; i++) t->average[i] += newData[i];
     if (++t->accumulated < t->numAverage) return;
     // We have now collected the desired number of points to average
-    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] /= t->accumulated;
+    for (i=t->firstChan; i<=t->lastChan; i++) t->average[i] /= t->accumulated;
     t->nextPoint(t->average);
-    for (i=t->firstChan; i<t->lastChan; i++) t->average[i] = 0;
+    for (i=t->firstChan; i<=t->lastChan; i++) t->average[i] = 0;
     t->accumulated = 0;
 }
 
