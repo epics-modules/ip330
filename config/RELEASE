@@ -8,10 +8,8 @@
 #       within those definitions.
 #
 # Add your declarations here
-
-include $(TOP)/../config/MCA_RELEASE
-include $(TOP)/../config/DAC128V_RELEASE
-include $(TOP)/../config/STD_RELEASE
-include $(TOP)/../config/MPF_RELEASE
-include $(TOP)/../config/RELEASE
-
+EPICS_BASE=/usr/local/epics/R3.13.7/base
+MCA=/home/epics/devel/mca
+DAC128V=/home/epics/devel/dac128V
+STD=/home/epics/devel/std
+MPF=/home/epics/devel/mpf1-10
