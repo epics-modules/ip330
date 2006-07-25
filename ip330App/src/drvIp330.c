@@ -1035,8 +1035,8 @@ static asynStatus drvUserCreate(void *drvPvt, asynUser *pasynUser,
         pstring = ip330Commands[i].commandString;
         if (epicsStrCaseCmp(drvInfo, pstring) == 0) {
             pasynUser->reason = ip330Commands[i].command;
-            *pptypeName = epicsStrDup(pstring);
-            *psize = sizeof(ip330Commands[i].command);
+            if (pptypeName) *pptypeName = epicsStrDup(pstring);
+            if (psize) *psize = sizeof(ip330Commands[i].command);
             asynPrint(pasynUser, ASYN_TRACE_FLOW,
               "drvIp330::drvUserCreate, command=%s\n", pstring);
             return(asynSuccess);
