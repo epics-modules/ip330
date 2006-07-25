@@ -1052,8 +1052,6 @@ static asynStatus drvUserGetType(void *drvPvt, asynUser *pasynUser,
 {
     ip330Command command = pasynUser->reason;
 
-    *pptypeName = NULL;
-    *psize = 0;
     if (pptypeName)
         *pptypeName = epicsStrDup(ip330Commands[command].commandString);
     if (psize) *psize = sizeof(command);
