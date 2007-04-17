@@ -751,7 +751,8 @@ static void intTask(drvIp330Pvt *pPvt)
             if (reason == ip330Data) {
                 pint32Interrupt->callback(pint32Interrupt->userPvt, 
                                           pint32Interrupt->pasynUser,
-                                          pPvt->correctedData[addr]);
+                                          pPvt->correctedData[addr], 
+                                          asynSuccess);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -767,7 +768,8 @@ static void intTask(drvIp330Pvt *pPvt)
             if (reason == ip330Data) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt, 
                                             pfloat64Interrupt->pasynUser,
-                                            (double)pPvt->correctedData[addr]);
+                                            (double)pPvt->correctedData[addr],
+                                            asynSuccess);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -783,7 +785,8 @@ static void intTask(drvIp330Pvt *pPvt)
                 pint32ArrayInterrupt->callback(pint32ArrayInterrupt->userPvt, 
                                                pint32ArrayInterrupt->pasynUser,
                                                pPvt->correctedData, 
-                                               MAX_IP330_CHANNELS);
+                                               MAX_IP330_CHANNELS,
+                                               asynSuccess);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -1009,7 +1012,8 @@ finish:
             if (reason == ip330ScanPeriod) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt,
                                             pfloat64Interrupt->pasynUser,
-                                            pPvt->actualScanPeriod);
+                                            pPvt->actualScanPeriod,
+                                            asynSuccess);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
