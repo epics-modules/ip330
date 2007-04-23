@@ -751,8 +751,7 @@ static void intTask(drvIp330Pvt *pPvt)
             if (reason == ip330Data) {
                 pint32Interrupt->callback(pint32Interrupt->userPvt, 
                                           pint32Interrupt->pasynUser,
-                                          pPvt->correctedData[addr], 
-                                          asynSuccess);
+                                          pPvt->correctedData[addr]);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -768,8 +767,7 @@ static void intTask(drvIp330Pvt *pPvt)
             if (reason == ip330Data) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt, 
                                             pfloat64Interrupt->pasynUser,
-                                            (double)pPvt->correctedData[addr],
-                                            asynSuccess);
+                                            (double)pPvt->correctedData[addr]);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -785,8 +783,7 @@ static void intTask(drvIp330Pvt *pPvt)
                 pint32ArrayInterrupt->callback(pint32ArrayInterrupt->userPvt, 
                                                pint32ArrayInterrupt->pasynUser,
                                                pPvt->correctedData, 
-                                               MAX_IP330_CHANNELS,
-                                               asynSuccess);
+                                               MAX_IP330_CHANNELS);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
@@ -1012,8 +1009,7 @@ finish:
             if (reason == ip330ScanPeriod) {
                 pfloat64Interrupt->callback(pfloat64Interrupt->userPvt,
                                             pfloat64Interrupt->pasynUser,
-                                            pPvt->actualScanPeriod,
-                                            asynSuccess);
+                                            pPvt->actualScanPeriod);
             }
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
