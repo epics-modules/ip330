@@ -336,7 +336,11 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
         return -1;
     }
 
-    pPvt->mailBoxOffset = 16;
+    if (pPvt->type == differential) {
+       pPvt->mailBoxOffset = 16;
+    } else {
+       pPvt->mailBoxOffset = 0;
+    }
     pPvt->chanSettings = callocMustSucceed(MAX_IP330_CHANNELS,
                                            sizeof(ip330ADCSettings),
                                            "initIp330");
@@ -917,7 +921,11 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     pPvt->regs->endChanVal = saveEndChanVal;
     for (i = 0; i < MAX_IP330_CHANNELS; i++) 
         pPvt->regs->gain[i] = pPvt->chanSettings[i].gain;
-    pPvt->mailBoxOffset=16; /* make it start over*/
+    if (pPvt->type == differential) {
+       pPvt->mailBoxOffset = 16; /* make it start over*/
+    } else {
+       pPvt->mailBoxOffset = 0;
+    }
     if (!pPvt->rebooting) ipmIrqCmd(pPvt->carrier, pPvt->slot, 
                                     0, ipac_irqEnable);
     pPvt->regs->startConvert = 0x0001;
