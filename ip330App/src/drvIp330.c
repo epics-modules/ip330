@@ -62,6 +62,7 @@ of this distribution.
 #include <epicsThread.h>
 #include <epicsString.h>
 #include <epicsTimer.h>
+#include <epicsExit.h>
 #include <epicsMutex.h>
 #include <epicsMessageQueue.h>
 #include <cantProceed.h>
@@ -115,6 +116,7 @@ typedef enum{typeInt32, typeFloat64, typeInt32Array} dataType;
 static const char *rangeName[nRanges] = {"-5to5","-10to10","0to5","0to10"};
 static const char *triggerName[nTriggers] = {"Input", "Output"};
 static const double pgaGain[nGains] = {1.0,2.0,4.0,8.0};
+static void rebootCallback(void *drvPvt);
 
 typedef struct ip330ADCregs {
     unsigned short control;
@@ -421,7 +423,7 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
         errlogPrintf("initIp330 intConnect Failure\n");
         return -1;
     }
-    /* Reboot::rebootHookAdd(rebootCallback,(void *)this); */
+    epicsAtExit(rebootCallback, pPvt);
     pPvt->regs->control = 0x0000;
     pPvt->regs->control |= 0x0002; /* Output Data Format = Straight Binary */
     setTrigger(pPvt, TRIGGER_DIRECTION);
