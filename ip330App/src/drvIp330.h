@@ -21,10 +21,11 @@ of this distribution.
 typedef enum {ip330Data, 
               ip330Gain, 
               ip330ScanPeriod, 
-              ip330CalibratePeriod
+              ip330CalibratePeriod,
+              ip330ScanMode
 } ip330Command;
 
-#define MAX_IP330_COMMANDS 4
+#define MAX_IP330_COMMANDS 5
 
 /* Implements the following asyn interfaces:
     Interface:          asynInt32   

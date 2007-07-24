@@ -99,7 +99,8 @@ static ip330CommandStruct ip330Commands[MAX_IP330_COMMANDS] = {
     {ip330Data,            "DATA"},
     {ip330Gain,            "GAIN"},
     {ip330ScanPeriod,      "SCAN_PERIOD"},
-    {ip330CalibratePeriod, "CALIBRATE_PERIOD"}
+    {ip330CalibratePeriod, "CALIBRATE_PERIOD"},
+    {ip330ScanMode,        "SCAN_MODE"}
 };
 
 typedef enum {differential, singleEnded} signalType;
@@ -519,6 +520,8 @@ static asynStatus readInt32(void *drvPvt, asynUser *pasynUser,
         *value = pPvt->correctedData[channel];
     } else if (command == ip330Gain) {
         *value = pPvt->chanSettings[channel].gain;
+    } else if (command == ip330ScanMode) {
+        *value = pPvt->scanMode;    
     } else {
         epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
                       "drvIp330::readInt32 invalid command=%d",
@@ -575,15 +578,17 @@ static asynStatus writeInt32(void *drvPvt, asynUser *pasynUser,
 
     if (command == ip330Gain) {
         status = setGain(drvPvt, pasynUser, value);
-        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
-                  "drvIp330::writeInt32, value=%d", value);
-        return(status);
+    } else if (command == ip330ScanMode) {
+        status = setScanMode(drvPvt, value);    
     } else {
         epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize,
                       "drvIp330::writeInt32D invalid command=%d",
                       command);
         return(asynError);
     }
+    asynPrint(pasynUser, ASYN_TRACEIO_DRIVER,
+                  "drvIp330::writeInt32, value=%d", value);
+    return(status);
 }
 
 static asynStatus writeFloat64(void *drvPvt, asynUser *pasynUser, 
@@ -922,9 +927,9 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     for (i = 0; i < MAX_IP330_CHANNELS; i++) 
         pPvt->regs->gain[i] = pPvt->chanSettings[i].gain;
     if (pPvt->type == differential) {
-       pPvt->mailBoxOffset = 16; /* make it start over*/
+        pPvt->mailBoxOffset = 16; /* make it start over*/
     } else {
-       pPvt->mailBoxOffset = 0;
+        pPvt->mailBoxOffset = 0;
     }
     if (!pPvt->rebooting) ipmIrqCmd(pPvt->carrier, pPvt->slot, 
                                     0, ipac_irqEnable);
