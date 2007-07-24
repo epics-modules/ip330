@@ -48,14 +48,12 @@ of this distribution.
     11-Jul-2004  Mark Rivers.  Converted from MPF to asyn, and from C++ to C
 */
 
-#include <iv.h>
+/* System includes */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#include <taskLib.h>
-#include <intLib.h>
-
+/* EPICS includes */
 #include <drvIpac.h>
 #include <iocsh.h>
 #include <epicsExport.h>
@@ -71,7 +69,9 @@ of this distribution.
 #include <asynFloat64.h>
 #include <asynInt32Array.h>
 #include <asynDrvUser.h>
+#include <devLib.h>
 
+/* Custom includes */
 #include "drvIp330.h" 
 
 #define SCAN_DISABLE    0xC8FF  /* control register AND mask - */
@@ -414,14 +414,12 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
 
     /* Program device registers */
     pPvt->regs = (ip330ADCregs *) ipmBaseAddr(carrier, slot, ipac_addrIO);;
-    /* wdId = new WatchDog; */
     pPvt->lock = epicsMutexCreate();
     pPvt->regs->startConvert = 0x0000;
     pPvt->regs->intVector = intVec;
-    if(intConnect(INUM_TO_IVEC(intVec), (VOIDFUNCPTR)intFunc, 
-                  (int)pPvt) == ERROR) {
-        errlogPrintf("initIp330 intConnect Failure\n");
-        return -1;
+    if (devConnectInterruptVME(intVec, (void *)intFunc, (void *)pPvt) < 0) {
+      errlogPrintf("initIp330: failure connecting to interrupt\n");
+      return -1;
     }
     epicsAtExit(rebootCallback, pPvt);
     pPvt->regs->control = 0x0000;
@@ -483,7 +481,7 @@ static int config(drvIp330Pvt *pPvt, scanModeType scan,
 {
     int trigger;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     for(trigger=0; trigger<nTriggers; trigger++) {
         if(strcmp(triggerString,triggerName[trigger])==0) break;
     }
@@ -501,7 +499,7 @@ static int config(drvIp330Pvt *pPvt, scanModeType scan,
                                               MAX_IP330_CHANNELS*sizeof(int));
     if (epicsThreadCreate("Ip330intTask",
                            epicsThreadPriorityHigh,
-						   epicsThreadGetStackSize(epicsThreadStackMedium),
+                           epicsThreadGetStackSize(epicsThreadStackMedium),
                            (EPICSTHREADFUNC)intTask,
                            pPvt) == NULL)
        errlogPrintf("Ip330intTask epicsThreadCreate failure\n");
@@ -515,7 +513,7 @@ static asynStatus readInt32(void *drvPvt, asynUser *pasynUser,
     int channel;
     ip330Command command = pasynUser->reason;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     pasynManager->getAddr(pasynUser, &channel);
     if (command == ip330Data) {
         *value = pPvt->correctedData[channel];
@@ -619,7 +617,7 @@ static void correctAll(drvIp330Pvt *pPvt)
     int value, raw;
     int i;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     if (pPvt->secondsBetweenCalibrate < 0) {
         for (i=0; i<MAX_IP330_CHANNELS; i++) {
            pPvt->correctedData[i] = pPvt->chanData[i];
@@ -645,7 +643,7 @@ static asynStatus setGain(void *drvPvt, asynUser *pasynUser,
 
     pasynManager->getAddr(pasynUser, &channel);
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     if(gain<0 || gain>nGains || channel<0 || channel>pPvt->lastChan) 
        return(-1);
     if(gain != pPvt->chanSettings[channel].gain) 
@@ -657,7 +655,7 @@ static int setGainPrivate(drvIp330Pvt *pPvt, int range, int gain, int channel)
 {
     unsigned short saveControl;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     if(gain<0 || gain>=nGains) {
         asynPrint(pPvt->pasynUser, ASYN_TRACE_ERROR,
                   "drvIp330::setGainPrivate illegal gain value %d\n", gain);
@@ -686,7 +684,7 @@ static int setGainPrivate(drvIp330Pvt *pPvt, int range, int gain, int channel)
 
 static int setTrigger(drvIp330Pvt *pPvt, triggerType trig)
 {
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     if (trig < 0 || trig >= nTriggers) return(-1);
     pPvt->trigger = trig;
     if (pPvt->trigger == output) pPvt->regs->control |= 0x0004;
@@ -695,7 +693,7 @@ static int setTrigger(drvIp330Pvt *pPvt, triggerType trig)
 
 static int setScanMode(drvIp330Pvt *pPvt, scanModeType mode)
 {
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     if ((mode < disable) || (mode > convertOnExternalTriggerOnly)) return(-1);
     pPvt->scanMode = mode;
     pPvt->regs->control &= ~(0x7 << 8);      /* Kill all control bits first */
@@ -813,7 +811,7 @@ static asynStatus setSecondsBetweenCalibrate(void *drvPvt, asynUser *pasynUser,
 {
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     pPvt->secondsBetweenCalibrate = seconds;
     autoCalibrate((void *)pPvt);
     return(asynSuccess);
@@ -824,7 +822,7 @@ static void autoCalibrate(void *drvPvt)
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
     int i;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     epicsTimerCancel(pPvt->timerId);
     if (pPvt->secondsBetweenCalibrate < 0) return;
     asynPrint(pPvt->pasynUser, ASYN_TRACE_FLOW,
@@ -849,7 +847,7 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     long sum;
     int i;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     saveControl = pPvt->regs->control;
     pPvt->regs->control &= SCAN_DISABLE;
     /* Disable scan mode and interrupts */
@@ -945,7 +943,7 @@ static double getActualScanPeriod(drvIp330Pvt *pPvt)
 {
     double microSeconds;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     microSeconds = (15. * (pPvt->lastChan - pPvt->firstChan + 1)) +
           (pPvt->regs->timePrescale * pPvt->regs->conversionTime) / 8.;
     return(microSeconds / 1.e6);
@@ -960,7 +958,7 @@ static double getScanPeriod(void *drvPvt, asynUser *pasynUser)
 {
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     return (pPvt->actualScanPeriod);
 }
 
@@ -979,7 +977,7 @@ static double setScanPeriod(void *drvPvt, asynUser *pasynUser,
     asynFloat64Interrupt *pfloat64Interrupt;
  
 
-    if (pPvt->rebooting) taskSuspend(0);
+    if (pPvt->rebooting) epicsThreadSuspendSelf();
     /* This function computes the optimal values for the prescale and
      * conversion timer registers.  microSecondsPerScan is the time
      * in microseconds between successive scans.
@@ -1181,7 +1179,7 @@ static const iocshArg * configArgs[5] = {&configArg0,
                                          &configArg2,
                                          &configArg3,
                                          &configArg4};
-static const iocshFuncDef configFuncDef = {"configIp330",9,configArgs};
+static const iocshFuncDef configFuncDef = {"configIp330",5,configArgs};
 static void configCallFunc(const iocshArgBuf *args)
 {
     configIp330(args[0].sval, (scanModeType)args[1].ival, args[2].sval,
