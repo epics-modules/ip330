@@ -5,6 +5,7 @@ include $(TOP)/configure/CONFIG
 #=============================
 
 LIBRARY_IOC_vxWorks += ip330
+LIBRARY_IOC_RTEMS   += ip330
 
 # If your Linux system supports drvIpac and devLib then uncomment this line
 LIBRARY_IOC_Linux += ip330
