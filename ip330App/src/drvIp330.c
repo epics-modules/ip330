@@ -1086,7 +1086,7 @@ static void report(void *drvPvt, FILE *fp, int details)
     ELLLIST *pclientList;
 
     fprintf(fp, "Port: %s, carrier %d slot %d, base address=%p\n", 
-            pPvt->portName, pPvt->carrier, pPvt->slot, pPvt->regs);
+            pPvt->portName, pPvt->carrier, pPvt->slot, (void *)pPvt->regs);
     if (details >= 1) {
         fprintf(fp, "    messages sent OK=%d; send failed (queue full)=%d\n",
                 pPvt->messagesSent, pPvt->messagesFailed);
@@ -1104,7 +1104,7 @@ static void report(void *drvPvt, FILE *fp, int details)
         while (pnode) {
             asynInt32Interrupt *pint32Interrupt = pnode->drvPvt;
             fprintf(fp, "    int32 callback client address=%p, addr=%d, reason=%d\n",
-                    pint32Interrupt->callback, pint32Interrupt->addr, 
+                    (void *)pint32Interrupt->callback, pint32Interrupt->addr, 
                     pint32Interrupt->pasynUser->reason);
             pnode = (interruptNode *)ellNext(&pnode->node);
         }
