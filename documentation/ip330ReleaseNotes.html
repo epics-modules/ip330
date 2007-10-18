@@ -8,9 +8,14 @@
 <h1 align="center">ip330 Release Notes<br>
 </h1>
 
-<h3>Release 2-5 April 17, 2007</h3>
+<h3>Release 2-5 October 18, 2007</h3>
 <ul>
-  <li>Change callbacks in driver to pass status argument required in asyn R4-8.</li>
+  <li>Added support for RTEMS to Makefile.
+  <li>Fixed problem with soft reboots by adding epicsAtExit call to driver to disable interrupts.</li>
+  <li>Fixed bug with single-ended mode (thanks to Peter Denison at Diamond).</li>
+  <li>Eliminated vxWorks dependencies, so it will work on any system with drvIpac 
+      and devLib (thanks to Wayne Lewis at the Australian Synchrotron).</li>
+  <li>Support for changing "scan mode" at run time.  Thanks to Pete Leicester at Diamond.</li>
 </ul>
 <p></p>
 
