@@ -57,6 +57,7 @@ of this distribution.
 #include <drvIpac.h>
 #include <iocsh.h>
 #include <epicsExport.h>
+#include <errlog.h>
 #include <epicsThread.h>
 #include <epicsString.h>
 #include <epicsTimer.h>
