@@ -891,7 +891,8 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     pPvt->regs->startConvert = 0x0001;
     waitNewData(pPvt);
     asynPrint(pPvt->pasynUser, ASYN_TRACEIO_DRIVER,
-              "drvIp33::calibrate. Raw values high channel=%d\n");
+              "drvIp33::calibrate. Raw values high channel=%d\n",
+              channel);
     sum = 0;
     for (i = 0; i < MAX_IP330_CHANNELS; i++) {
         val = pPvt->regs->mailBox[i];
