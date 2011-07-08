@@ -830,12 +830,11 @@ static void autoCalibrate(void *drvPvt)
 
     if (pPvt->rebooting) epicsThreadSuspendSelf();
     epicsTimerCancel(pPvt->timerId);
-    if (pPvt->secondsBetweenCalibrate < 0) return;
     asynPrint(pPvt->pasynUser, ASYN_TRACEIO_DRIVER,
               "drvIp330::autoCalibrate starting calibration\n");
     for(i=pPvt->firstChan; i<= pPvt->lastChan; i++)
         calibrate(pPvt, i);
-    if (pPvt->secondsBetweenCalibrate != 0)
+    if (pPvt->secondsBetweenCalibrate > 0)
         epicsTimerStartDelay(pPvt->timerId, pPvt->secondsBetweenCalibrate);
 }
 
