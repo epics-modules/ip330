@@ -1,4 +1,4 @@
-/* asynIp330.h
+/* drvIp330.h
 
 ********************COPYRIGHT NOTIFICATION**********************************
 This software was developed under a United States Government license
