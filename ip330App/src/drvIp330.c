@@ -75,8 +75,49 @@ of this distribution.
 /* Custom includes */
 #include "drvIp330.h" 
 
-#define SCAN_DISABLE    0xC8FF  /* control register AND mask - */
-                                /* SCAN and INTERRUPT disable */
+/* Control register bits */
+#define CTL_OUTPUT_SHIFT              1
+#define CTL_OUTPUT_MASK             0x0002
+#define CTL_OUTPUT_TWOS_COMPLEMENT  0x0000
+#define CTL_OUTPUT_STRAIGHT_BINARY  0x0002
+
+#define CTL_TRIGGER_SHIFT             2
+#define CTL_TRIGGER_MASK            0x0004
+#define CTL_TRIGGER_INPUT           0x0000
+#define CTL_TRIGGER_OUTPUT          0x0004
+
+#define CTL_INPUT_SHIFT               3
+#define CTL_INPUT_MASK              0x0038
+#define CTL_INPUT_DIFFERENTIAL      0x0000
+#define CTL_INPUT_SINGLE_ENDED      0x0008
+#define CTL_INPUT_4900MV            0x0018
+#define CTL_INPUT_2450MV            0x0020
+#define CTL_INPUT_1225MV            0x0028
+#define CTL_INPUT_612MV             0x0030
+#define CTL_INPUT_AUTO_ZERO         0x0038
+
+#define CTL_SCAN_SHIFT                8
+#define CTL_SCAN_MASK               0x0700
+#define CTL_SCAN_DISABLE            0x0000
+#define CTL_SCAN_UNIFORM_CONTINUOUS 0x0100
+#define CTL_SCAN_UNIFORM_SINGLE     0x0200
+#define CTL_SCAN_BURST_CONTINUOUS   0x0300
+#define CTL_SCAN_BURST_SINGLE       0x0400
+#define CTL_SCAN_EXTERNAL           0x0500
+
+#define CTL_TIMER_SHIFT              11
+#define CTL_TIMER_MASK              0x0800
+#define CTL_TIMER_DISABLE           0x0000
+#define CTL_TIMER_ENABLE            0x0800
+
+#define CTL_INTERRUPT_SHIFT          12
+#define CTL_INTERRUPT_MASK          0x3000
+#define CTL_INTERRUPT_DISABLE       0x0000
+#define CTL_INTERRUPT_AFTER_EACH    0x1000
+#define CTL_INTERRUPT_AFTER_ALL     0x2000
+
+#define DISABLE_SCAN_AND_INTERRUPT ~(CTL_SCAN_MASK | CTL_INTERRUPT_MASK) 
+
 #define ACROMAG_ID 0xa3
 #define ACRO_IP330 0x11
 
@@ -425,15 +466,15 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     }
     epicsAtExit(rebootCallback, pPvt);
     pPvt->regs->control = 0x0000;
-    pPvt->regs->control |= 0x0002; /* Output Data Format = Straight Binary */
+    pPvt->regs->control |= CTL_OUTPUT_STRAIGHT_BINARY; /* Output Data Format = Straight Binary */
     setTrigger(pPvt, TRIGGER_DIRECTION);
     setScanMode(pPvt, SCAN_MODE);
-    pPvt->regs->control |= 0x0800; /* Timer Enable = Enable */
+    pPvt->regs->control |= CTL_TIMER_ENABLE; /* Timer Enable = Enable */
     setScanPeriod(pPvt, pPvt->pasynUser, MICROSECONDS_PER_SCAN/1.e6);
     if(pPvt->type==differential) {
-        pPvt->regs->control |= 0x0000;
+        pPvt->regs->control |= CTL_INPUT_DIFFERENTIAL;
     } else {
-        pPvt->regs->control |= 0x0008;
+        pPvt->regs->control |= CTL_INPUT_SINGLE_ENDED;
     }
     /* Channels to convert */
     pPvt->regs->startChanVal = firstChan;
@@ -443,6 +484,9 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
         setGainPrivate(pPvt, pPvt->range, 0, i);
     }
     setSecondsBetweenCalibrate(pPvt, pPvt->pasynUser, SECONDS_BETWEEN_CALIBRATE);
+
+    /* Enable interrupts on carrier card */
+    ipmIrqCmd(pPvt->carrier, pPvt->slot, 0, ipac_irqEnable);
 
     return 0;
 }
@@ -496,7 +540,7 @@ static int config(drvIp330Pvt *pPvt, scanModeType scan,
     setScanPeriod(pPvt, pPvt->pasynUser, secondsPerScan);
     setSecondsBetweenCalibrate(pPvt, pPvt->pasynUser, secondsCalibrate);
     autoCalibrate((void *)pPvt);
-    pPvt->regs->control |= 0x2000; /* = Interrupt After All Selected */
+    pPvt->regs->control |= CTL_INTERRUPT_AFTER_ALL; /* = Interrupt After All Selected */
     pPvt->intMsgQId = epicsMessageQueueCreate(MAX_MESSAGES, 
                                               MAX_IP330_CHANNELS*sizeof(int));
     if (epicsThreadCreate("Ip330intTask",
@@ -668,7 +712,7 @@ static int setGainPrivate(drvIp330Pvt *pPvt, int range, int gain, int channel)
         return(-1);
     }
     saveControl = pPvt->regs->control;
-    pPvt->regs->control &= SCAN_DISABLE;
+    pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
     pPvt->chanSettings[channel].gain = gain;
     pPvt->chanSettings[channel].volt_callo = 
                                 calibrationSettings[range][gain].volt_callo;
@@ -693,7 +737,7 @@ static int setTrigger(drvIp330Pvt *pPvt, triggerType trig)
     if (pPvt->rebooting) epicsThreadSuspendSelf();
     if (trig < 0 || trig >= nTriggers) return(-1);
     pPvt->trigger = trig;
-    if (pPvt->trigger == output) pPvt->regs->control |= 0x0004;
+    if (pPvt->trigger == output) pPvt->regs->control |= CTL_TRIGGER_OUTPUT;
     return(0);
 }
 
@@ -702,8 +746,8 @@ static int setScanMode(drvIp330Pvt *pPvt, scanModeType mode)
     if (pPvt->rebooting) epicsThreadSuspendSelf();
     if ((mode < disable) || (mode > convertOnExternalTriggerOnly)) return(-1);
     pPvt->scanMode = mode;
-    pPvt->regs->control &= ~(0x7 << 8);      /* Kill all control bits first */
-    pPvt->regs->control |= pPvt->scanMode << 8;
+    pPvt->regs->control &= ~CTL_SCAN_MASK; /* Kill all scan bits first */
+    pPvt->regs->control |= pPvt->scanMode << CTL_SCAN_SHIFT;
     return(0);
 }
 
@@ -731,7 +775,8 @@ static void intFunc(void *drvPvt)
         pPvt->messagesSent++;
     else
         pPvt->messagesFailed++;
-    if(!pPvt->rebooting) ipmIrqCmd(pPvt->carrier, pPvt->slot, 0, ipac_irqEnable);
+    if (pPvt->rebooting) 
+        pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
 }
 
 static void intTask(drvIp330Pvt *pPvt)
@@ -854,17 +899,17 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
 
     if (pPvt->rebooting) epicsThreadSuspendSelf();
     saveControl = pPvt->regs->control;
-    pPvt->regs->control &= SCAN_DISABLE;
+    pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
     /* Disable scan mode and interrupts */
     /* determine count_callo */
     saveStartChanVal = pPvt->regs->startChanVal;
     saveEndChanVal = pPvt->regs->endChanVal;
-    pPvt->regs->endChanVal = 0x1F;
-    pPvt->regs->startChanVal = 0x00;
+    pPvt->regs->endChanVal = 31;
+    pPvt->regs->startChanVal = 0;
     for (i = 0; i < MAX_IP330_CHANNELS; i++) 
         pPvt->regs->gain[i] = pPvt->chanSettings[channel].gain;
-    pPvt->regs->control = 0x0402 | (0x0038 & 
-                                    (pPvt->chanSettings[channel].ctl_callo));
+    pPvt->regs->control = CTL_SCAN_BURST_SINGLE | CTL_OUTPUT_STRAIGHT_BINARY | 
+                         (CTL_INPUT_MASK & (pPvt->chanSettings[channel].ctl_callo));
     pPvt->regs->startConvert = 0x0001;
     waitNewData(pPvt);
     /* Ignore first set of data so that adc has time to settle */
@@ -882,8 +927,8 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     }
     count_callo = ((double)sum)/(double)MAX_IP330_CHANNELS;
     /* determine count_calhi */
-    pPvt->regs->control = 0x0402 | (0x0038 & 
-                                   (pPvt->chanSettings[channel].ctl_calhi));
+    pPvt->regs->control = CTL_SCAN_BURST_SINGLE | CTL_OUTPUT_STRAIGHT_BINARY | 
+                         (CTL_INPUT_MASK & (pPvt->chanSettings[channel].ctl_calhi));
     pPvt->regs->startConvert = 0x0001;
     waitNewData(pPvt);
     /* Ignore first set of data so that adc has time to settle */
@@ -919,7 +964,7 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
               "drvIp330::calibrate channel %d adj_slope %e adj_offset %e\n",
               channel, cal1, cal2);
     /* restore control and gain values */
-    pPvt->regs->control &= SCAN_DISABLE;
+    pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
     pPvt->regs->control = saveControl;
     /* Restore pre - calibrate control register state */
     pPvt->regs->startChanVal = saveStartChanVal;
@@ -931,8 +976,8 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
     } else {
         pPvt->mailBoxOffset = 0;
     }
-    if (!pPvt->rebooting) ipmIrqCmd(pPvt->carrier, pPvt->slot, 
-                                    0, ipac_irqEnable);
+    if (pPvt->rebooting) 
+        pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
     pPvt->regs->startConvert = 0x0001;
     return (0);
 }
@@ -940,7 +985,7 @@ static int calibrate(drvIp330Pvt *pPvt, int channel)
 static void rebootCallback(void *drvPvt)
 {
     drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
-    pPvt->regs->control &= SCAN_DISABLE;
+    pPvt->regs->control &= DISABLE_SCAN_AND_INTERRUPT;
     pPvt->rebooting = 1;
 }
 
