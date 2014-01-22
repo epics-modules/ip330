@@ -1143,6 +1143,15 @@ static void report(void *drvPvt, FILE *fp, int details)
                    pPvt->chanSettings[i].adj_slope, 
                    pPvt->chanData[i], pPvt->correctedData[i]);
         }
+        fprintf(fp, "    regs->control        = 0x%x\n",      pPvt->regs->control);
+        fprintf(fp, "    regs->timePrescale   = 0x%x\n",      pPvt->regs->timePrescale);
+        fprintf(fp, "    regs->intVector      = 0x%x\n",      pPvt->regs->intVector);
+        fprintf(fp, "    regs->conversionTime = 0x%x\n",      pPvt->regs->conversionTime);
+        fprintf(fp, "    regs->endChanVal     = 0x%x\n",      pPvt->regs->endChanVal);
+        fprintf(fp, "    regs->startChanVal   = 0x%x\n",      pPvt->regs->startChanVal);
+        fprintf(fp, "    regs->newData        = 0x%x 0x%x\n", pPvt->regs->newData[0],    pPvt->regs->newData[1]);
+        fprintf(fp, "    regs->missedData     = 0x%x 0x%x\n", pPvt->regs->missedData[0], pPvt->regs->missedData[1]);
+        fprintf(fp, "    regs->startConvert   = 0x%x\n",      pPvt->regs->startConvert);
         /* Report int32 interrupts */
         pasynManager->interruptStart(pPvt->int32InterruptPvt, &pclientList);
         pnode = (interruptNode *)ellFirst(pclientList);
