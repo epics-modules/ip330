@@ -1152,6 +1152,10 @@ static void report(void *drvPvt, FILE *fp, int details)
         fprintf(fp, "    regs->newData        = 0x%x 0x%x\n", pPvt->regs->newData[0],    pPvt->regs->newData[1]);
         fprintf(fp, "    regs->missedData     = 0x%x 0x%x\n", pPvt->regs->missedData[0], pPvt->regs->missedData[1]);
         fprintf(fp, "    regs->startConvert   = 0x%x\n",      pPvt->regs->startConvert);
+        for (i=0; i<MAX_IP330_CHANNELS; i++) {
+           fprintf(fp, "    chan %d, regs->gain=0x%x  mailBox=0x%x\n",
+                   i, pPvt->regs->gain[i], pPvt->regs->mailBox[i]);
+        }
         /* Report int32 interrupts */
         pasynManager->interruptStart(pPvt->int32InterruptPvt, &pclientList);
         pnode = (interruptNode *)ellFirst(pclientList);
