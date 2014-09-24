@@ -132,6 +132,8 @@ of this distribution.
 
 #define MAX_IP330_CHANNELS 32
 
+#define MAX_IP330_CARDS 256
+
 typedef struct {
     ip330Command command;
     char *commandString;
@@ -250,6 +252,9 @@ typedef struct drvIp330Pvt {
     asynInterface drvUser;
 } drvIp330Pvt;
 
+static drvIp330Pvt* driverTable[MAX_IP330_CARDS];
+static int numCards;
+
 /* These functions are used by the interfaces */
 static asynStatus readInt32         (void *drvPvt, asynUser *pasynUser,
                                      epicsInt32 *value);
@@ -274,7 +279,7 @@ static asynStatus disconnect        (void *drvPvt, asynUser *pasynUser);
 
 
 /* These are private functions, not used in any interfaces */
-static void intFunc           (void *drvPvt); /* Interrupt function */
+static void intFunc           (int drvPvt); /* Interrupt function */
 static void intTask           (drvIp330Pvt *pPvt);
 static int calibrate          (drvIp330Pvt *pPvt, int channel);
 static void waitNewData       (drvIp330Pvt *pPvt);
@@ -460,8 +465,10 @@ int initIp330(const char *portName, ushort_t carrier, ushort_t slot,
     pPvt->lock = epicsMutexCreate();
     pPvt->regs->startConvert = 0x0000;
     pPvt->regs->intVector = intVec;
-    if (devConnectInterruptVME(intVec, (void *)intFunc, (void *)pPvt) < 0) {
-      errlogPrintf("initIp330: failure connecting to interrupt\n");
+    driverTable[numCards] = pPvt;
+    numCards++;
+    if (ipmIntConnect(carrier, slot, intVec, intFunc, numCards-1)) {
+      errlogPrintf("initIp330: interrupt connect failure\n");
       return -1;
     }
     epicsAtExit(rebootCallback, pPvt);
@@ -751,12 +758,16 @@ static int setScanMode(drvIp330Pvt *pPvt, scanModeType mode)
     return(0);
 }
 
-static void intFunc(void *drvPvt)
+static void intFunc(int card)
 {
-    drvIp330Pvt *pPvt = (drvIp330Pvt *)drvPvt;
+    drvIp330Pvt *pPvt = driverTable[card];
     int i;
     int data[MAX_IP330_CHANNELS];
 
+#ifdef linux
+    asynPrint(pPvt->pasynUser, ASYN_TRACEIO_DRIVER,
+              "drvIp330::intFunc entry, card=%d\n", card);
+#endif
     if (pPvt->type == differential) {
        /* Must alternate between reading data from mailBox[i] and mailBox[i+16]
         * Except in case of uniform/burstSingle, where only half of mailbox is 
