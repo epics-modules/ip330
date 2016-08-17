@@ -5,8 +5,6 @@
 SUPPORT=/corvette/home/epics/devel
 -include $(TOP)/../configure/SUPPORT.$(EPICS_HOST_ARCH)
 
-TEMPLATE_TOP=$(EPICS_BASE)/templates/makeBaseApp/top
-
 # If you don't want to install into $(TOP) then
 # define INSTALL_LOCATION_APP here
 #INSTALL_LOCATION_APP=<fullpathname>
