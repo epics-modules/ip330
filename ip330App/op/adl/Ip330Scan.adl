@@ -1,12 +1,12 @@
 
 file {
-	name="/home/beams/BCDA/epics/synApps_R3.13.1.1_R4.2/share/ipApp/op/adl/Ip330Scan.adl"
-	version=020306
+	name="/home/oxygen40/KLANG/Documents/Projects/Repository/git/ip330/ip330App/op/adl/Ip330Scan.adl"
+	version=030107
 }
 display {
 	object {
-		x=422
-		y=379
+		x=115
+		y=141
 		width=430
 		height=490
 	}
@@ -89,9 +89,9 @@ display {
 }
 text {
 	object {
-		x=56
+		x=0
 		y=10
-		width=332
+		width=430
 		height=47
 	}
 	"basic attribute" {
