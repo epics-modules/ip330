@@ -1,0 +1,51 @@
+# ### ip330.iocsh ###
+
+#- ###################################################
+#- PREFIX         - IOC Prefix
+#- PORT           - Name to give IP330's asyn port
+#- INT_VEC        - Interrupt Vector
+#- TRIGGER        - Direction of external trigger signal (Input or Output)
+#- SUB            - Optional: Channel configuration substitions file (ip330Scan.template)
+#-                            Macros P, C, PORT, EGUL, EGUF, LOPR, and HOPR are set automatically
+#-                  Default: $(IP330)/iocsh/EXAMPLE_ip330.substitutions
+#-
+#- CARRIER        - Optional: IPAC carrier number (0, 1, etc.)
+#-                  Default: 0
+#-
+#- SLOT           - Optional: IPAC slot (0,1,2,3, etc.)
+#-                  Default: 0
+#-
+#- TYPE           - Optional: D for differential, S for single-ended
+#-                  Default: D
+#-
+#- RANGE          - Optional: Voltage range (-5to5, -10to10, 0to5, 0to10)
+#-                  Default: -10to10
+#-
+#-
+#- FIRST_CHAN     - Optional: First channel to digitize
+#-                  Default: 0
+#- 
+#- LAST_CHAN      - Optional: Last channel to digitize
+#-                  Default: 15 for differential, 31 for single-ended
+#- 
+#- SCAN_MODE      - Optional: Scan mode (0=disable, 1=uniformContinuous, 2=uniformSingle,
+#-                            3=burstConinuous, 4=burstSingle, 5=convertOnExternalTriggerOnly)
+#-                  Default: 3
+#-
+#- SCAN_PERIOD    - Optional: Scan period in microseconds
+#-                            minimum theoretical: 15us, minimum practical: ~100us
+#-                  Default: 500
+#-
+#- CALIB_PERIOD   - Optional: Seconds between calibration cycles
+#-                  Default: 0
+#- ###################################################
+
+
+#- Initialize Acromag IP-330 ADC
+iocshRun('initIp330("$(PORT)", $(CARRIER=0), $(SLOT=0), "$(TYPE=D)", "$(RANGE=-10to10)", $(FIRST_CHAN=0), $(LAST_CHAN_$(TYPE=D)=31), $(INT_VEC))', "LAST_CHAN_D=15")
+
+#- int configIp330
+configIp330("$(PORT)", $(SCAN_MODE=3),"$(TRIGGER)",$(SCAN_PERIOD=500),$(CALIB_PERIOD=0))
+
+#- ai records using asynInt32Average device support
+iocshRun('dbLoadTemplate("$(SUB=$(IP330)/iocsh/EXAMPLE_ip330.substitutions)", "P=$(PREFIX), PORT=$(PORT), C=$(CARRIER=0), EGUL=$(LOW_$(RANGE=-10to10)), LOPR=$(LOW_$(RANGE=-10to10)), EGUF=$(HI_$(RANGE=-10to10)), HOPR=$(HI_$(RANGE=-10to10))")', "LOW-10to10=-10.0,LOW-5to5=-5.0,LOW0to5=0.0,LOW0to10=0.0,HI-10to10=10.0,HI-5to5=5.0,HI0to5=5.0,HI0to10=10.0")
