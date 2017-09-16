@@ -12,14 +12,14 @@
     Mark Rivers
   </h2>
   <h2 style="text-align: center">
-    Release 2-7
+    Release 2-9
   </h2>
   <p>
-    This file describes support for the Acromag Ip300, a 16/32 channel, 16-bit A/D
-    converter in the Industry Pack form factor. This support is a C driver that is based
-    on <a href="http://www.aps.anl.gov/epics/modules/soft/asyn/">asyn</a>. It supports
-    both the asynInt32 and asynFloat64 interfaces. The asynInt32 interface is used for
-    ai records, and does callbacks to device support each time a new value is read from
+    This file describes support for the Acromag Ip300, a 16/32 channel, 16-bit A/D converter
+    in the Industry Pack form factor. This support is a C driver that is based on <a
+      href="http://www.aps.anl.gov/epics/modules/soft/asyn/">asyn</a>. It supports both
+    the asynInt32 and asynFloat64 interfaces. The asynInt32 interface is used for ai
+    records, and does callbacks to device support each time a new value is read from
     the hardware. This can cause the ai record to process on each callback. Alternatively
     the standard asyn Int32Average device support can be used with periodic ai record
     scanning to average the callback values that have happened since the last time the
