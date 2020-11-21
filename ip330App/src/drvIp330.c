@@ -165,11 +165,21 @@ static void rebootCallback(void *drvPvt);
 
 typedef struct ip330ADCregs {
     unsigned short control;
+#if BYTE_ORDER==__BIG_ENDIAN
     unsigned char timePrescale;
     unsigned char intVector;
+#else
+    unsigned char intVector;
+    unsigned char timePrescale;
+#endif
     unsigned short conversionTime;
+#if BYTE_ORDER==__BIG_ENDIAN
     unsigned char endChanVal;
     unsigned char startChanVal;
+#else
+    unsigned char startChanVal;
+    unsigned char endChanVal;
+#endif
     unsigned short newData[2];
     unsigned short missedData[2];
     unsigned short startConvert;
