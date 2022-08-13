@@ -6,6 +6,6 @@ The support is written a an asyn port driver using the the [EPICS asyn module](h
 
 Additional information:
 
-* [Home page](http://htmlpreview.github.com/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330.html)
-* [Documentation](http://htmlpreview.github.com/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330Doc.html)
-* [Release notes](http://htmlpreview.github.com/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330ReleaseNotes.html)
+* [Home page](https://htmlpreview.github.io/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330.html)
+* [Documentation](https://htmlpreview.github.io/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330Doc.html)
+* [Release notes](https://htmlpreview.github.io/?https://github.com/epics-modules/ip330/blob/master/documentation/ip330ReleaseNotes.html)
